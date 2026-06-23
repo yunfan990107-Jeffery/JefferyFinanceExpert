@@ -36,7 +36,7 @@ if submitted:
         }
         try:
             rid = FeishuClient().add_record(config.table_judgments, fields)
-            st.success(f"已记录，验证日期 {verify_date}（record {rid}）")
-        except NotImplementedError:
-            st.info("⚙️ 待实现：feishu_client.add_record（见 docs/tasks/T0-3.md）。字段已就绪：")
-            st.json(fields)
+            st.success(f"✅ 已记录到飞书 · 验证日期 {verify_date} · record_id: `{rid}`")
+            st.caption("可在飞书多维表格或复盘中心查看。")
+        except Exception as e:
+            st.error(f"写入飞书失败：{e}")
