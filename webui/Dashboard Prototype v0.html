@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrivateFinanceExpert · Dashboard v0</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root {
+  --ground: #0B0E14;
+  --surface: #141820;
+  --elevated: #1A1F2A;
+  --border: #252A36;
+  --amber: #E8A840;
+  --positive: #2ECC71;
+  --negative: #E74C3C;
+  --text: #E6E8EC;
+  --muted: #7A8290;
+  --sidebar-w: 240px;
+  --radius: 6px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--ground);
+  color: var(--text);
+  font-family: Inter, PingFang SC, Microsoft YaHei, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+#root { display: flex; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+// ── Design tokens as JS ──────────────────────────────────────
+const t = {
+  ground: '#0B0E14', surface: '#141820', elevated: '#1A1F2A',
+  border: '#252A36', amber: '#E8A840', positive: '#2ECC71',
+  negative: '#E74C3C', text: '#E6E8EC', muted: '#7A8290',
+  radius: '6px',
+};
+
+// ── Sidebar ───────────────────────────────────────────────────
+const navItems = [
+  { id: 'dashboard', label: '仪表盘', icon: '◫', active: true },
+  { id: 'analysis', label: '分析中心', icon: '◇', active: false },
+  { id: 'review',   label: '复盘中心', icon: '◎', active: false },
+  { id: 'portfolio',label: '持仓看板', icon: '⏣', active: false },
+  { id: 'intel',    label: '信息流',   icon: '▦', active: false },
+  { id: 'cognitive',label: '认知档案', icon: '◉', active: false },
+];
+
+const Sidebar = () => (
+  <nav style={{
+    width: '240px', minWidth: '240px', background: t.surface,
+    borderRight: `1px solid ${t.border}`, display: 'flex',
+    flexDirection: 'column', padding: '16px 0',
+  }}>
+    <div style={{ padding: '0 20px 20px', borderBottom: `1px solid ${t.border}` }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: t.amber, letterSpacing: '0.5px' }}>
+        PrivateFinanceExpert
+      </div>
+      <div style={{ fontSize: 11, color: t.muted, marginTop: 4 }}>
+        个人 AI 投资分析系统
+      </div>
+    </div>
+    <div style={{ flex: 1, padding: '12px 8px' }}>
+      {navItems.map(item => (
+        <div key={item.id} style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 12px', borderRadius: t.radius, cursor: 'pointer',
+          background: item.active ? t.elevated : 'transparent',
+          color: item.active ? t.amber : t.muted,
+          fontSize: 13, fontWeight: item.active ? 600 : 400,
+          marginBottom: 2, transition: 'background 150ms',
+        }}>
+          <span style={{ fontSize: 14 }}>{item.icon}</span>
+          <span>{item.label}</span>
+        </div>
+      ))}
+    </div>
+    <div style={{ padding: '12px 20px', borderTop: `1px solid ${t.border}` }}>
+      <div style={{ fontSize: 12, color: t.muted }}>今日 2026-06-23</div>
+    </div>
+  </nav>
+);
+
+// ── Metric Card ───────────────────────────────────────────────
+const MetricCard = ({ label, value, sub, accent }) => (
+  <div style={{
+    background: t.surface, border: `1px solid ${t.border}`,
+    borderRadius: t.radius, padding: '16px 20px',
+    display: 'flex', flexDirection: 'column', gap: 4,
+    transition: 'transform 150ms, box-shadow 150ms',
+  }}
+  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}>
+    <div style={{ fontSize: 12, color: t.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      {label}
+    </div>
+    <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: accent || t.text }}>
+      {value}
+    </div>
+    {sub && <div style={{ fontSize: 12, color: t.muted }}>{sub}</div>}
+  </div>
+);
+
+// ── Dashboard ─────────────────────────────────────────────────
+const Dashboard = () => {
+  const [dueJudgments] = useState([
+    { id: 1, date: '06-20', target: '沪深300', dir: '看多', conf: 70, due: '06-23' },
+    { id: 2, date: '06-15', target: '宁德时代', dir: '看空', conf: 60, due: '06-22' },
+    { id: 3, date: '06-10', target: '新能源板块', dir: '中性', conf: 50, due: '06-17' },
+  ]);
+
+  const portfolioData = [
+    { name: '贵州茅台', weight: 60.5, pnl: '+12.3%' },
+    { name: '宁德时代', weight: 35.3, pnl: '-3.1%' },
+    { name: '平安银行', weight: 4.2, pnl: '+1.8%' },
+  ];
+
+  const calibration = { count: 47, avgBrier: '0.18', overconfident: true };
+
+  return (
+    <div style={{ flex: 1, overflow: 'auto', padding: '32px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: t.text, marginBottom: 4 }}>
+          仪表盘
+        </h1>
+        <div style={{ fontSize: 13, color: t.muted }}>
+          今日概览 · 最近更新 10:32
+        </div>
+      </div>
+
+      {/* Metrics Row */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 12, marginBottom: 28,
+      }}>
+        <MetricCard label="待复盘判断" value="3" sub="最早到期 06-17" accent={t.amber} />
+        <MetricCard label="本月判断" value="12" sub="上月 15 条" />
+        <MetricCard label="平均 Brier" value="0.18" sub="较上月 -0.03" accent={calibration.overconfident ? t.negative : t.positive} />
+        <MetricCard label="校准状态" value={calibration.overconfident ? '过度自信' : '正常'} sub={`基于 ${calibration.count} 条`} accent={calibration.overconfident ? t.negative : t.positive} />
+      </div>
+
+      {/* Two-panel grid */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr',
+        gap: 16, minHeight: 0,
+      }}>
+        {/* Due Judgments */}
+        <div style={{
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: t.radius, padding: 20,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600 }}>近期待复盘</h2>
+            <span style={{ fontSize: 12, color: t.amber, cursor: 'pointer' }}>全部 →</span>
+          </div>
+          {dueJudgments.map(j => (
+            <div key={j.id} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '12px 0', borderBottom: `1px solid ${t.border}`,
+            }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>
+                  <span style={{ color: t.muted, fontSize: 12 }}>{j.date}</span>
+                  {' '}{j.target}
+                  <span style={{
+                    marginLeft: 8, fontSize: 12,
+                    color: j.dir === '看多' ? t.positive : j.dir === '看空' ? t.negative : t.muted,
+                  }}>{j.dir}</span>
+                </div>
+                <div style={{ fontSize: 12, color: t.muted, marginTop: 2 }}>
+                  置信度 {j.conf}/100 · 到期 {j.due}
+                </div>
+              </div>
+              <button style={{
+                background: t.elevated, border: `1px solid ${t.amber}`,
+                color: t.amber, borderRadius: '4px', padding: '5px 14px',
+                fontSize: 12, cursor: 'pointer', fontWeight: 500,
+              }}>对答案</button>
+            </div>
+          ))}
+        </div>
+
+        {/* Portfolio Summary */}
+        <div style={{
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: t.radius, padding: 20,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600 }}>持仓摘要</h2>
+            <span style={{ fontSize: 12, color: t.amber, cursor: 'pointer' }}>详情 →</span>
+          </div>
+          {portfolioData.map((p, i) => (
+            <div key={i} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '10px 0', borderBottom: i < 2 ? `1px solid ${t.border}` : 'none',
+            }}>
+              <div style={{ fontSize: 13 }}>{p.name}</div>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div style={{
+                  width: `${Math.max(p.weight, 4)}px`, height: 6,
+                  background: p.weight > 30 ? t.negative : t.amber,
+                  borderRadius: 3, minWidth: 20,
+                }} title={`${p.weight}%`} />
+                <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono', color: t.muted, width: 48, textAlign: 'right' }}>
+                  {p.weight}%
+                </span>
+                <span style={{
+                  fontSize: 12, fontFamily: 'JetBrains Mono',
+                  color: p.pnl.startsWith('+') ? t.positive : t.negative, width: 56, textAlign: 'right',
+                }}>
+                  {p.pnl}
+                </span>
+              </div>
+            </div>
+          ))}
+          {portfolioData.some(p => p.weight > 30) && (
+            <div style={{
+              marginTop: 12, padding: '8px 12px', borderRadius: '4px',
+              background: 'rgba(231,76,60,0.1)', border: `1px solid rgba(231,76,60,0.3)`,
+              fontSize: 12, color: t.negative,
+            }}>
+              ⚠ 单标集中度偏高（茅台 60.5% &gt; 30%）
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Calibration Snapshot */}
+      <div style={{
+        background: t.surface, border: `1px solid ${t.border}`,
+        borderRadius: t.radius, padding: 20, marginTop: 16,
+      }}>
+        <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>校准快照</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+          {[
+            { label: '高置信 (≥80)', actual: '54%', expected: '80%+' },
+            { label: '中置信 (50-79)', actual: '62%', expected: '50-79%' },
+            { label: '低置信 (<50)', actual: '48%', expected: '<50%' },
+            { label: '总命中率', actual: '56%', expected: '—' },
+          ].map((b, i) => (
+            <div key={i} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 12, color: t.muted, marginBottom: 6 }}>{b.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'JetBrains Mono',
+                color: parseFloat(b.actual) >= parseFloat(b.expected) ? t.positive : t.negative }}>
+                {b.actual}
+              </div>
+              <div style={{ fontSize: 11, color: t.muted, marginTop: 2 }}>
+                预期 {b.expected}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── App Shell ─────────────────────────────────────────────────
+const App = () => (
+  <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+    <Sidebar />
+    <Dashboard />
+  </div>
+);
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
