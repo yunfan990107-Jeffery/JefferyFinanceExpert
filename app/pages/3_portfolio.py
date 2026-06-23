@@ -10,6 +10,7 @@ import pandas as pd  # noqa: E402
 from core import portfolio  # noqa: E402
 from core.feishu_client import FeishuClient  # noqa: E402
 from core.config import config  # noqa: E402
+from core import data_fetcher  # noqa: E402
 
 st.title("💼 持仓看板")
 
@@ -42,7 +43,20 @@ except Exception as e:
     st.error(f"读取持仓失败：{e}")
 
 if positions:
-    prices = {p["code"]: p.get("cost", 0) for p in positions}  # TODO(P1): AkShare 取现价
+    # P1: 用 AkShare 取真实现价，失败兜底成本价
+    prices = {}
+    fetch_failures = []
+    for p in positions:
+        code = p.get("code", "")
+        if code:
+            result = data_fetcher.get_price(code)
+            if result.get("price") is not None:
+                prices[code] = result["price"]
+            else:
+                prices[code] = p.get("cost", 0)
+                fetch_failures.append(code)
+    if fetch_failures:
+        st.warning(f"⚠️ 以下标的价格获取失败，用成本价估算：{'、'.join(fetch_failures)}")
     metrics = portfolio.compute_position_metrics(positions, prices)
     st.dataframe(pd.DataFrame(metrics))
     conc = portfolio.concentration(metrics)
