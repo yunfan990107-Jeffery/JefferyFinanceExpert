@@ -3,6 +3,7 @@
 > 每完成一张任务卡，在本文件**顶部**加一行：`- [YYYY-MM-DD] T0-X 完成 — 摘要（agent 名）`
 > 详细完成记录写在对应 `docs/tasks/T0-X.md` 末尾的「✅ 完成记录」。
 
+- [2026-06-23] 架构师加固 — 补 tools/registry/stock_research/llm_client/intel 单测(测试 33→57)；加 core/obs.py 调用日志并接入 llm_client；**修 2 个真 bug**：stock_research._build_data_summary 未定义变量 days(kline 非空即崩)、intel._classify_news 摘要解析取错段致摘要恒空（架构师）
 - [2026-06-23] P2-1/P2-2 完成 — 绩效归因 attribution()+7单测 + Baostock兜底/质量校验/缓存健壮（ZCode）
 - [2026-06-23] T2-1/T2-2 完成 — Agent 架构扩展性重构（配置化/tool registry/function-calling/可配置流水线）+ 报告推送脚本（ZCode）
 - [2026-06-23] T1-7/T1-5/T1-6 完成 — 金融教练角色 + 信息筛选 intel.py + 认知档案月度校准（ZCode）

@@ -15,6 +15,7 @@ from pathlib import Path
 import requests
 from .config import config
 from .calibration import build_review_prompt
+from .obs import log_event
 
 _AGENTS_DIR = Path(__file__).resolve().parent.parent / "agents"
 
@@ -60,10 +61,14 @@ def chat(system_prompt: str, user_prompt: str, max_tokens: int = 800) -> str:
             timeout=60,
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+        out = resp.json()["choices"][0]["message"]["content"]
+        log_event("llm_call", model=config.llm_model, chars=len(out or ""))
+        return out
     except requests.RequestException as e:
+        log_event("llm_error", level="error", error=str(e))
         return f"（LLM 调用失败：{e}）"
     except (KeyError, IndexError, json.JSONDecodeError) as e:
+        log_event("llm_error", level="error", error=str(e))
         return f"（LLM 返回格式异常：{e}）"
 
 

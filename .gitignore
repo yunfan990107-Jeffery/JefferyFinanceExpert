@@ -30,3 +30,6 @@ _auth_qr.png
 
 # 误克隆进工作目录的嵌套仓库
 AgentPrivateFinanaceExpertJefferyFinanceExpert/
+
+# 运行日志
+logs/

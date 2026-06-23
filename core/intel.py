@@ -95,7 +95,11 @@ def _classify_news(news: dict) -> tuple[str, str]:
             importance = "必读"
         elif "忽略" in line:
             importance = "忽略"
-        elif "摘要" in line and "【" in line:
-            summary = line.split("】")[-1].strip()[:200] if "】" in line else line.strip()[:200]
+        elif "摘要" in line:
+            if "【" in line and "】" in line:
+                # 取 【...】 之间的内容
+                summary = line.split("【")[-1].split("】")[0].strip()[:200]
+            else:
+                summary = line.split("：")[-1].split(":")[-1].strip()[:200]
 
     return importance, summary

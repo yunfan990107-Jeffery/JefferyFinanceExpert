@@ -136,7 +136,7 @@ def _build_data_summary(code, name, price_info, kline, fundamentals):
         lines.append("财务指标：" + "、".join(f"{k}={v}" for k, v in indicators.items()))
     if kline:
         closes = [k["close"] for k in kline]
-        lines.append(f"近{days}日K线：最高{max(closes):.2f} 最低{min(closes):.2f} 均值{sum(closes)/len(closes):.2f}")
+        lines.append(f"近{len(kline)}日K线：最高{max(closes):.2f} 最低{min(closes):.2f} 均值{sum(closes)/len(closes):.2f}")
     return "\n".join(lines)
 
 
