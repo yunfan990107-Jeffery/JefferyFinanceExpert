@@ -314,4 +314,167 @@ def get_news(keyword: str, limit: int = 20) -> list[dict]:
 
 
 # ── 初始化 ──────────────────────────────────────────────────────
+
+
+# ── P2 兜底源：Baostock ────────────────────────────────────────
+
+_bs = None
+
+
+def _get_bs():
+    global _bs
+    if _bs is None:
+        try:
+            import baostock as bs
+            bs.login()
+            _bs = bs
+        except Exception:
+            pass
+    return _bs
+
+
+def _bs_get_price(code: str) -> dict | None:
+    """Baostock 兜底取价。"""
+    bs = _get_bs()
+    if bs is None:
+        return None
+    try:
+        # 补齐交易所前缀：sz=000001, sh=600519
+        full_code = f"sz.{code}" if code.startswith(("0", "3")) else f"sh.{code}"
+        rs = bs.query_history_k_data_plus(
+            full_code, "date,close", start_date=(date.today() - timedelta(days=5)).strftime("%Y-%m-%d"),
+            end_date=date.today().strftime("%Y-%m-%d"), frequency="d", adjustflag="2",
+        )
+        rows = []
+        while rs.next():
+            rows.append(rs.get_row_data())
+        bs.logout()
+        if rows and rows[-1][1]:
+            return {"code": code, "price": float(rows[-1][1]), "pe": None, "pb": None, "name": code}
+    except Exception:
+        pass
+    return None
+
+
+def _bs_get_kline(code: str, days: int = 300) -> list[dict] | None:
+    """Baostock 兜底取 K 线。"""
+    bs = _get_bs()
+    if bs is None:
+        return None
+    try:
+        full_code = f"sz.{code}" if code.startswith(("0", "3")) else f"sh.{code}"
+        start = (date.today() - timedelta(days=days + 10)).strftime("%Y-%m-%d")
+        rs = bs.query_history_k_data_plus(
+            full_code, "date,open,high,low,close,volume",
+            start_date=start, end_date=date.today().strftime("%Y-%m-%d"),
+            frequency="d", adjustflag="2",
+        )
+        rows = []
+        while rs.next():
+            rows.append(rs.get_row_data())
+        bs.logout()
+        return [
+            {"date": r[0], "open": float(r[1]), "high": float(r[2]),
+             "low": float(r[3]), "close": float(r[4]), "volume": float(r[5])}
+            for r in rows if r[4]
+        ]
+    except Exception:
+        return None
+
+
+# ── P2 数据质量校验 ────────────────────────────────────────────
+
+def _validate_price_result(result: dict) -> dict:
+    """校验 get_price 返回值，坏数据标 _stale。"""
+    price = result.get("price")
+    if price is not None:
+        if not isinstance(price, (int, float)) or price <= 0:
+            result["price"] = None
+            result["_stale"] = True
+            result["_warning"] = f"价格异常({price})，已标记为无效"
+    return result
+
+
+def _validate_kline_result(rows: list[dict]) -> list[dict]:
+    """校验 K 线数据：过滤掉 close <= 0 的行。"""
+    return [r for r in rows if isinstance(r.get("close"), (int, float)) and r["close"] > 0]
+
+
+# ── P2 缓存健壮：取 stale 缓存兜底 ─────────────────────────────
+
+def _get_stale_price_cache(code: str) -> dict | None:
+    """取最近一次缓存（不要求当日）。"""
+    conn = _get_conn()
+    row = conn.execute(
+        "SELECT * FROM price_cache WHERE code = ? ORDER BY updated DESC LIMIT 1", (code,)
+    ).fetchone()
+    conn.close()
+    if row:
+        return {
+            "code": code, "price": row["price"], "pe": row["pe"],
+            "pb": row["pb"], "name": row["name"], "_stale": True,
+        }
+    return None
+
+
+# ── 重连 Baostock（每次调用后 bs.logout() 会断开） ──────────────
+
+_bs_logged_in = False
+
+
+def _bs_ensure_login():
+    global _bs_logged_in
+    if not _bs_logged_in:
+        try:
+            import baostock as bs_mod
+            bs_mod.login()
+            _bs_logged_in = True
+        except Exception:
+            pass
+
+
+# ── 更新 get_price 接入兜底 ────────────────────────────────────
+
+# 保存原始实现的引用
+_get_price_original = get_price
+
+
+def get_price(code: str) -> dict:  # noqa: F811 (redefine intentionally)
+    """获取股票最新价（AkShare → Baostock → stale cache 三级兜底）。"""
+    result = _get_price_original(code)
+
+    # 校验
+    result = _validate_price_result(result)
+
+    # 如果 AkShare 失败，试 Baostock
+    if result.get("price") is None and "error" in result:
+        bs_result = _bs_get_price(code)
+        if bs_result and bs_result.get("price"):
+            return _validate_price_result(bs_result)
+
+        # 取 stale 缓存兜底
+        stale = _get_stale_price_cache(code)
+        if stale:
+            return stale
+
+    return result
+
+
+# 保存原始 get_kline
+_get_kline_original = get_kline
+
+
+def get_kline(code: str, days: int = 300) -> list[dict]:  # noqa: F811
+    """获取 K 线（AkShare → Baostock → stale cache 三级兜底）。"""
+    result = _get_kline_original(code, days)
+    result = _validate_kline_result(result)
+
+    if len(result) < 5:
+        bs_result = _bs_get_kline(code, days)
+        if bs_result and len(bs_result) >= 5:
+            return _validate_kline_result(bs_result[-days:])
+
+    return result
+
+
 _init_cache_tables()

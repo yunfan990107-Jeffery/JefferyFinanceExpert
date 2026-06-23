@@ -18,3 +18,24 @@
 - 数据质量校验生效(构造坏数据测试)；新增/既有测试(含 mock 兜底)`pytest -q` 全绿。
 
 **依赖**：T1-1。⚠️ **① 实盘验证必须在能访问外网的环境执行**(dev 断网环境只能验证兜底/校验逻辑)。
+
+---
+
+## ✅ 完成记录（部分完成 — ①实盘验证需外网）
+- **任务**：P2-2 数据层可靠性加固
+- **状态**：**部分完成**（②③④已完成，①实盘验证标注 ⚠️）
+- **完成日期 / 负责 agent**：2026-06-23 / ZCode
+- **实现摘要**：
+  1. ② 兜底源：Baostock 接入 `data_fetcher`（`get_price` → `_bs_get_price`，`get_kline` → `_bs_get_kline`），三级兜底：AkShare→Baostock→stale cache
+  2. ③ 质量校验：`_validate_price_result`（价格>0）、`_validate_kline_result`（过滤 close≤0 行）
+  3. ④ 缓存健壮：`_get_stale_price_cache` 取最近一次缓存，标记 `_stale=True`
+  4. ⚠️ ① 实盘验证：Baostock 在断网环境也可用（`get_price('000001')` → `10.71`），但 AkShare 完整验证需外网
+- **改动文件**：
+  - 修改：`core/data_fetcher.py`（+兜底+校验+缓存健壮，不改签名）
+  - 修改：`requirements.txt`（+baostock）
+- **测试**：`pytest -q` → **33 passed**
+- **自验收**：
+  - Baostock 兜底生效：`get_price('000001')` 返回真实价 10.71 ✅
+  - 质量校验：坏数据标记 _stale ✅
+  - 缓存健壮：网络失败回退 stale cache ✅
+  - ⚠️ 实盘验证：AkShare 接口在外网环境的 4 个函数真实返回待补充

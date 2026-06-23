@@ -19,3 +19,19 @@
 - 新增单测覆盖（看对没赚 / 看错反赚 / 无关联 三种）；`pytest -q` 全绿。
 
 **依赖**：现有 portfolio / calibration / feishu_client。
+
+---
+
+## ✅ 完成记录
+- **任务**：P2-1 实现绩效归因
+- **状态**：已完成
+- **完成日期 / 负责 agent**：2026-06-23 / ZCode
+- **实现摘要**：
+  1. 实现 `attribution(position, linked_judgment)`：判断质量（Brier + 方向正确性）+ 执行质量（看对没赚/看错反赚/一致/幸运）
+  2. 实现 `portfolio_attribution(positions, judgments)`：组合级汇总
+  3. 7 个单测覆盖：看对赚/看对亏/看错赚/看错亏/无关联/部分正确/组合汇总
+- **改动文件**：
+  - 修改：`core/portfolio.py`（实现 attribution + portfolio_attribution）
+  - 新增：`tests/test_portfolio.py`（7 单测）
+- **测试**：`pytest -q` → **33 passed**
+- **自验收**：看对没赚 ✅；看错反赚 ✅；无关联降级 ✅；新增单测全绿 ✅
