@@ -10,6 +10,14 @@
 - 业务逻辑放 `core/`，界面放 `app/`，AI 角色提示词放 `agents/`。各司其职。
 - 飞书是数据真相源；本地 `cache/` 只放可再生数据，且已 gitignore。
 
+## 飞书资源归属（重要）
+所有在飞书创建的文档与多维表格，**必须挂进知识库（Wiki），不得留在个人云空间 / Drive**。
+- 知识库 `space_id` = `7652969095092014047`；首页(根)节点 = `E7G9wNDvYiMCQLkHRGEcF0APnLf`。
+- 用 `lark-cli base/docs +create` 新建后，若 URL 是 `/base/` 或 `/drive/`（非 `/wiki/`），说明它在个人空间，**必须移入**：
+  `lark-cli wiki +move --as user --obj-token <token> --obj-type bitable|docx --target-space-id 7652969095092014047 --target-parent-token <父节点>`
+- 移动后 app_token / obj_token **不变**，API 与 `.env` 配置不受影响；记录最终 `/wiki/` 链接。
+- 数据多维表格现位置：https://qcnsl9sevuhc.feishu.cn/wiki/QLDOw8ehRiypsRkemrVcNIFQnvd
+
 ## 红线
 - 不写任何真实下单/交易执行代码。
 - 不提交 `.env` 或任何密钥。

@@ -8,9 +8,12 @@
   - portfolio：code, name, qty, cost, buy_date, industry, linked_judgment_id, linked_decision_id, reason
   - tasks / decisions / risk_reviews / intel：P0 先建表占位，字段可后续细化
 - 把 app_token 与各 table_id 写进 `.env`（参考 .env.example）。
+- **把多维表格移进知识库（Wiki）**：`base +create` 生成的是 `/base/` 游离文档，必须 `lark-cli wiki +move --obj-token <app_token> --obj-type bitable --target-space-id 7652969095092014047 --target-parent-token E7G9wNDvYiMCQLkHRGEcF0APnLf` 移入。详见 docs/README「飞书资源归属」。
 **工具**：可用本机 `lark-cli base ...`（已授权）。
-**交付/验收**：六张表存在；字段类型正确；.env 填好；能用 lark-cli 写读 judgments 一条测试记录。
+**交付/验收**：六张表存在；字段类型正确；.env 填好；能用 lark-cli 写读 judgments 一条测试记录；**多维表格链接为 `/wiki/`（已在知识库内）**。
 **依赖**：无。**下游**：T0-3。
+
+> 📌 架构师补充（2026-06-23）：此前 ZCode 建的表落在个人空间(`/base/`)，已移入知识库 → https://qcnsl9sevuhc.feishu.cn/wiki/QLDOw8ehRiypsRkemrVcNIFQnvd 。app_token 不变，`.env` 无需改。本条规则已补进 docs/README 与验收清单，后续任务照此执行。
 
 ---
 
