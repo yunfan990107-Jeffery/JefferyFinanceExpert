@@ -1,0 +1,8 @@
+# P0 核心
+streamlit>=1.36
+pandas>=2.0
+python-dotenv>=1.0
+requests>=2.31
+
+# P1 起用（行情数据）。P0 可暂不安装。
+# akshare>=1.13

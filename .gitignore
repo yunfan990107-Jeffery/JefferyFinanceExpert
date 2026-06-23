@@ -1,0 +1,26 @@
+# 密钥与配置
+.env
+*.key
+
+# 数据（飞书是真相源；本地仅缓存，可再生）
+cache/
+*.sqlite
+*.db
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# 系统
+.DS_Store
+nul
+
+# 环境/工具产物（非项目）
+.agents/
+skills-lock.json
+_auth_qr.png
+*.png
