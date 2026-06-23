@@ -26,14 +26,16 @@ class FeishuClient:
         cli_args = ["lark-cli"] + list(args)
         try:
             result = subprocess.run(
-                cli_args, capture_output=True, text=True, timeout=30,
+                cli_args, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=30,
             )
         except FileNotFoundError:
             # Windows: .CMD 文件不能直接被 CreateProcess 执行，用 cmd /c 重试
             try:
                 result = subprocess.run(
                     ["cmd", "/c"] + cli_args,
-                    capture_output=True, text=True, timeout=30,
+                    capture_output=True, text=True,
+                    encoding="utf-8", errors="replace", timeout=30,
                 )
             except FileNotFoundError:
                 raise RuntimeError("lark-cli 未安装或不在 PATH 中，请先配置 lark-cli")
