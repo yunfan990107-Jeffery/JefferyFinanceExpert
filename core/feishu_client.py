@@ -22,18 +22,38 @@ class FeishuClient:
         """执行 lark-cli 命令，返回 response['data'] 或 response 自身。
 
         Windows 下 lark-cli 是 .CMD 脚本，需通过 cmd /c 启动。
+        --json 参数若过长会自动切换为临时文件传参，避免 Windows 命令行长限制。
         """
+        import os as _os
         cli_args = ["lark-cli"] + list(args)
+
+        # 检测 --json 后的 value 是否过长（>500 字符），若是则写临时文件
+        # lark-cli 要求 @file 为相对路径，故写入当前工作目录
+        fixed_args = []
+        tmp_files = []
+        i = 0
+        while i < len(cli_args):
+            a = cli_args[i]
+            if a == "--json" and i + 1 < len(cli_args) and len(cli_args[i + 1]) > 500:
+                fn = f"_larkcli_tmp_{i}.json"
+                with open(fn, "w", encoding="utf-8") as tf:
+                    tf.write(cli_args[i + 1])
+                fixed_args.extend(["--json", f"@{fn}"])
+                tmp_files.append(fn)
+                i += 2
+            else:
+                fixed_args.append(a)
+                i += 1
+
         try:
             result = subprocess.run(
-                cli_args, capture_output=True, text=True,
+                fixed_args, capture_output=True, text=True,
                 encoding="utf-8", errors="replace", timeout=30,
             )
         except FileNotFoundError:
-            # Windows: .CMD 文件不能直接被 CreateProcess 执行，用 cmd /c 重试
             try:
                 result = subprocess.run(
-                    ["cmd", "/c"] + cli_args,
+                    ["cmd", "/c"] + fixed_args,
                     capture_output=True, text=True,
                     encoding="utf-8", errors="replace", timeout=30,
                 )
@@ -41,6 +61,12 @@ class FeishuClient:
                 raise RuntimeError("lark-cli 未安装或不在 PATH 中，请先配置 lark-cli")
         except subprocess.TimeoutExpired:
             raise RuntimeError("lark-cli 命令超时 (30s)")
+        finally:
+            for f in tmp_files:
+                try:
+                    _os.unlink(f)
+                except OSError:
+                    pass
 
         if result.returncode != 0:
             raise RuntimeError(

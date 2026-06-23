@@ -21,6 +21,7 @@ class Config:
     table_decisions: str = os.getenv("TABLE_DECISIONS", "")
     table_risk_reviews: str = os.getenv("TABLE_RISK_REVIEWS", "")
     table_intel: str = os.getenv("TABLE_INTEL", "")
+    table_research: str = os.getenv("TABLE_RESEARCH", "")
 
     # LLM（复盘用，OpenAI 兼容 API）
     llm_api_key: str = os.getenv("LLM_API_KEY", "")
