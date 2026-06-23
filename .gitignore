@@ -24,3 +24,6 @@ nul
 skills-lock.json
 _auth_qr.png
 *.png
+
+# MCP/工具配置（可能含 token，不上传）
+.mcp.json

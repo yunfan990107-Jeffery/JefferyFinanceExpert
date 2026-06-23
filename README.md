@@ -3,6 +3,10 @@
 个人 A 股投资者的 AI 投资分析系统：系统化做研究、记录与校准判断、管理持仓、控制风险、复盘自己。
 **核心边界：永不自动下单，不替用户做投资决策，只产出研究与认知支持。**
 
+> **远程仓库**: https://github.com/yunfan990107-Jeffery/JefferyFinanceExpert
+> 克隆: `git clone https://github.com/yunfan990107-Jeffery/JefferyFinanceExpert.git`
+> 新 agent 如何上手见 [`docs/ONBOARDING.md`](docs/ONBOARDING.md)。
+
 ## 文档（先读）
 - 架构主文档（人类易读）: Feishu「V0.2.1 人类易读版」
 - 需求文档(PRD): Feishu「AI投资专家需求文档集」
