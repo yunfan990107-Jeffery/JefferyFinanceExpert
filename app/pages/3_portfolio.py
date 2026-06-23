@@ -29,18 +29,17 @@ with st.expander("➕ 录入持仓"):
                       "cost": cost, "buy_date": date.today().isoformat(),
                       "linked_judgment_id": linked, "reason": reason}
             try:
-                FeishuClient().add_record(config.table_portfolio, fields)
-                st.success("已保存到飞书。")
-            except NotImplementedError:
-                st.info("⚙️ 待实现：feishu_client.add_record。字段已就绪：")
-                st.json(fields)
+                rid = FeishuClient().add_record(config.table_portfolio, fields)
+                st.success(f"✅ 已保存到飞书 · record_id: `{rid}`")
+            except Exception as e:
+                st.error(f"保存失败：{e}")
 
 st.subheader("当前组合")
 try:
     positions = FeishuClient().list_records(config.table_portfolio)
-except NotImplementedError:
+except Exception as e:
     positions = []
-    st.info("⚙️ 待实现：feishu_client.list_records（见 docs/tasks/T0-3.md）。")
+    st.error(f"读取持仓失败：{e}")
 
 if positions:
     prices = {p["code"]: p.get("cost", 0) for p in positions}  # TODO(P1): AkShare 取现价
