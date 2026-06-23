@@ -56,3 +56,14 @@
   - tasks/decisions/risk_reviews/intel 四表为占位表，字段可能在 P1 细化
   - `portfolio.linked_decision_id` 字段名与 `core/portfolio.py` 注释一致（P0 预留）
 - **解锁的下游任务**：T0-3（feishu_client）、T0-8（质量审查角色，存放位置已就绪）
+
+---
+
+### 🔄 补充验证（2026-06-23）：Wiki 归属
+按更新后的任务卡要求（多维表格必须挂在知识库），架构师已将 base 从个人空间移入 Wiki KB。验证如下：
+
+| 验收项（新增） | 验证命令/步骤 | 实际结果(证据) | 通过 |
+|---|---|---|---|
+| 多维表格在知识库内 | `lark-cli wiki +node-list --space-id 7652969095092014047 --parent-node-token E7G9wNDvYiMCQLkHRGEcF0APnLf` | node_token=QLDOw8ehRiypsRkemrVcNIFQnvd, obj_type=bitable, obj_token=IGIababehaMNNZst7CEcEoGEnrd（与 .env 一致），空间 7652969095092014047 | ✅ |
+| Wiki 链接可访问 | 浏览器打开 | https://qcnsl9sevuhc.feishu.cn/wiki/QLDOw8ehRiypsRkemrVcNIFQnvd | ✅ |
+| app_token 不变、.env 无需改 | 对比 | obj_token=IGIababehaMNNZst7CEcEoGEnrd，与 .env 中 FEISHU_BITABLE_APP_TOKEN 一致 | ✅ |
