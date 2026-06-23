@@ -77,3 +77,99 @@ def build_review_prompt(judgment: dict, actual_note: str) -> str:
         "输出：①对/错/部分 ②置信度是否校准（过度自信？）"
         "③证据是否充分、时间范围是否合理 ④是否有情绪/认知偏差 ⑤下次改进一条。"
     )
+
+
+# ── P1 新增函数（不改既有签名）─────────────────────────────────
+
+def monthly_calibration_report(judgments: list[dict]) -> dict:
+    """生成月度校准报告：高置信准确率、平均 Brier、趋势。
+
+    Args:
+        judgments: 已验证的判断列表（含 confidence / actual_result / date）。
+
+    Returns:
+        {"period": str, "avg_brier": float, "overconfident": bool,
+         "bias_types": str, "strength_areas": str, "sample_count": int}
+    """
+    summary = calibration_summary(judgments)
+    n = summary["count"]
+    if n == 0:
+        return {
+            "period": "", "avg_brier": 0.0, "overconfident": False,
+            "bias_types": "", "strength_areas": "", "sample_count": 0,
+        }
+
+    # 偏差类型识别
+    biases = []
+    verified = [j for j in judgments
+                if j.get("actual_result") in RESULT_HIT and j.get("confidence") is not None]
+
+    # 过度自信（高置信低命中）
+    if summary["overconfident"]:
+        biases.append("过度自信")
+
+    # 按方向偏差检测
+    dir_stats: dict[str, list] = {}
+    for j in verified:
+        d = j.get("direction", "未知")
+        dir_stats.setdefault(d, []).append(
+            brier_score(j["confidence"], j["actual_result"])
+        )
+    for d, scores in dir_stats.items():
+        if len(scores) >= 3 and sum(scores) / len(scores) > 0.4:
+            biases.append(f"{d}方向偏差(Brier>{0.4:.2f})")
+
+    # 擅长领域（Brier < 0.1）
+    strengths = []
+    target_stats: dict[str, list] = {}
+    for j in verified:
+        t = j.get("target", "未知")
+        target_stats.setdefault(t, []).append(
+            brier_score(j["confidence"], j["actual_result"])
+        )
+    for t, scores in target_stats.items():
+        if len(scores) >= 2:
+            avg = sum(scores) / len(scores)
+            if avg < 0.1:
+                strengths.append(t)
+
+    # 月度区间
+    dates = [j.get("date", "") for j in verified if j.get("date")]
+    period = f"{min(dates)} ~ {max(dates)}" if dates else ""
+
+    return {
+        "period": period,
+        "avg_brier": summary["avg_brier"] or 0.0,
+        "overconfident": summary["overconfident"],
+        "bias_types": "、".join(biases) if biases else "无明显偏差",
+        "strength_areas": "、".join(strengths) if strengths else "暂无足够数据",
+        "sample_count": n,
+    }
+
+
+def detect_bias_by_target(judgments: list[dict]) -> dict:
+    """按标的类型检测系统性偏差。
+
+    Returns:
+        {target: {"count": int, "avg_brier": float, "hit_rate": float}, ...}
+    """
+    verified = [j for j in judgments
+                if j.get("actual_result") in RESULT_HIT and j.get("confidence") is not None]
+    result: dict[str, dict] = {}
+    for j in verified:
+        t = j.get("target", "未知")
+        if t not in result:
+            result[t] = {"count": 0, "brier_sum": 0.0, "hit_sum": 0.0}
+        result[t]["count"] += 1
+        result[t]["brier_sum"] += brier_score(j["confidence"], j["actual_result"])
+        result[t]["hit_sum"] += RESULT_HIT[j["actual_result"]]
+
+    output = {}
+    for t, stats in result.items():
+        n = stats["count"]
+        output[t] = {
+            "count": n,
+            "avg_brier": round(stats["brier_sum"] / n, 4),
+            "hit_rate": round(stats["hit_sum"] / n, 3),
+        }
+    return output
