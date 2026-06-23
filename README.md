@@ -27,7 +27,7 @@
 - **本地缓存** = 行情等可再生数据放 `cache/`（不入 Git）
 
 ## 技术栈
-Python 3.11+ · Streamlit · 飞书多维表格(Bitable, 经 lark API) · AkShare(P1) · SQLite(P1) · pandas
+Python 3.11+ · Streamlit · 飞书多维表格(Bitable, 经 lark API) · LLM(DeepSeek, OpenAI 兼容) · AkShare(P1) · SQLite(P1) · pandas
 
 ## 快速开始
 ```bash
@@ -40,7 +40,7 @@ streamlit run app/main.py
 ## 目录
 ```
 app/        Streamlit 应用（main.py + pages/ 三页）
-core/       业务逻辑模块（feishu_client / calibration / portfolio / config）
+core/       业务逻辑模块（feishu_client / calibration / portfolio / llm_client / config）
 agents/     AI 角色提示词（quality_review.md）
 templates/  研究/风险/决策模板
 docs/       开发约定 + 任务卡(tasks/)
@@ -49,4 +49,5 @@ cache/      本地行情缓存（gitignore）
 ```
 
 ## 现状
-P0 脚手架。`core/calibration.py`、`core/portfolio.py` 已有可用纯逻辑；`core/feishu_client.py` 为接口桩，待实现（见 `docs/tasks/T0-3.md`）。
+**P0 已全部完成 🎉**：飞书 6 表已建（在知识库内）、`feishu_client` / `calibration` / `portfolio` / `llm_client` 已实现、Streamlit 三页可用、复盘接 DeepSeek 自动点评、一份茅台示范研究已入库。
+下一阶段 **P1**（数据层 AkShare / 个股深度研究 / 信息筛选 / 认知档案）任务卡见 `docs/tasks/T1-*.md`，可分配。

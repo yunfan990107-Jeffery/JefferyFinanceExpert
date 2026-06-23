@@ -18,6 +18,14 @@
 - 移动后 app_token / obj_token **不变**，API 与 `.env` 配置不受影响；记录最终 `/wiki/` 链接。
 - 数据多维表格现位置：https://qcnsl9sevuhc.feishu.cn/wiki/QLDOw8ehRiypsRkemrVcNIFQnvd
 
+## LLM 调用（统一入口，重要）
+需要调用 AI 时（复盘点评、个股研究的反方/风险、信息重要性分级等），**统一用 `core/llm_client`，不要自己写 requests 调用**：
+- `llm_client.chat(system_prompt, user_prompt) -> str`　通用调用
+- `llm_client.load_role("devil_advocate.md") -> str`　加载某角色提示词作 system prompt
+- 例：`chat(load_role("risk_control.md"), 待审查内容)`
+- LLM = **DeepSeek**（OpenAI 兼容），配置在 `.env`：`LLM_API_KEY` / `LLM_BASE_URL=https://api.deepseek.com` / `LLM_MODEL=deepseek-chat`。
+- 未配置 key 时 `chat()` 自动降级为返回提示词，不报错。
+
 ## 红线
 - 不写任何真实下单/交易执行代码。
 - 不提交 `.env` 或任何密钥。
