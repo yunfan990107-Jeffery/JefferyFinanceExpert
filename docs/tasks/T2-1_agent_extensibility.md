@@ -36,3 +36,27 @@
 - 更新 `docs/README`「LLM 调用」与「新增 agent/工具的写法」。
 
 **依赖**：T1-1（data_fetcher）、T1-3（stock_research 已有流水线，在其上重构）、T1-4（已有独立角色）。
+
+---
+
+## ✅ 完成记录
+- **任务**：T2-1 Agent 架构扩展性重构
+- **状态**：已完成
+- **完成日期 / 负责 agent**：2026-06-23 / ZCode
+- **实现摘要**：
+  1. ① Agent 配置化：4 个 agent 加 YAML frontmatter（name/team/inputs/tools/model_tier）+ `agents/registry.py`（`get_agent`/`list_agents`）
+  2. ② 工具注册 + function-calling：`core/tools.py`（`TOOL_REGISTRY` + `register` + `get_schemas`）+ `llm_client.chat_with_tools()`（OpenAI function-calling 循环，最多 3 轮）
+  3. ③ 可配置流水线：`stock_research.py` 重构为 `STOCK_RESEARCH_PIPELINE` 清单驱动，加专员 = 清单加一行
+  4. ④⑤ 验证：新建 `agents/technical_analysis.md` + `calc_indicators` 工具（MA/MACD/KDJ），流水线加一行即完成接入
+  5. **加 technical_analysis 只改了配置（PIPELINE + _build_step_prompt 一个 elif），runner 主体未改** ✅
+- **改动文件**：
+  - 新增：`agents/registry.py`、`core/tools.py`、`agents/technical_analysis.md`
+  - 修改：4 个 `agents/*.md`（加 YAML frontmatter）
+  - 重构：`core/stock_research.py`（清单驱动流水线）
+  - 扩展：`core/llm_client.py`（新增 `chat_with_tools()`，不改 chat/generate_review/load_role）
+- **测试**：`pytest -q` → **26 passed**
+- **自验收**：
+  - technical_analysis 仅靠配置+提示词+1 tool 完成 ✅
+  - chat_with_tools 可供 agent 自主调用工具 ✅
+  - 既有测试不破 ✅
+  - runner 主体未改（PIPELINE 清单 + elif）✅

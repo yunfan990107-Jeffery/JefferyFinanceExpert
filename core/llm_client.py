@@ -67,6 +67,86 @@ def chat(system_prompt: str, user_prompt: str, max_tokens: int = 800) -> str:
         return f"（LLM 返回格式异常：{e}）"
 
 
+def chat_with_tools(
+    system_prompt: str,
+    user_prompt: str,
+    tool_names: list[str],
+    max_rounds: int = 3,
+) -> str:
+    """带 function-calling 的 LLM 调用（OpenAI 兼容）。
+
+    Args:
+        system_prompt: 系统提示词。
+        user_prompt: 用户提示词。
+        tool_names: 要注册的工具名列表（对应 tools.py 的 TOOL_REGISTRY）。
+        max_rounds: 最大 tool-call 轮次。
+
+    Returns:
+        LLM 最终文本回复。
+    """
+    from .tools import TOOL_REGISTRY, get_schemas
+
+    if not config.llm_ready():
+        return chat(system_prompt, user_prompt)
+
+    tools = get_schemas(tool_names)
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    for _ in range(max_rounds):
+        try:
+            resp = requests.post(
+                f"{config.llm_base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {config.llm_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": config.llm_model,
+                    "messages": messages,
+                    "tools": tools if tools else None,
+                    "temperature": 0.3,
+                    "max_tokens": 800,
+                },
+                timeout=60,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            choice = data["choices"][0]
+            msg = choice["message"]
+
+            # 如果有 tool_calls，执行并回灌
+            if msg.get("tool_calls"):
+                messages.append(msg)
+                for tc in msg["tool_calls"]:
+                    fn_name = tc["function"]["name"]
+                    fn_args = json.loads(tc["function"]["arguments"])
+                    fn = TOOL_REGISTRY.get(fn_name)
+                    if fn:
+                        try:
+                            result = fn(**fn_args)
+                        except Exception as e:
+                            result = f"工具调用失败: {e}"
+                    else:
+                        result = f"未知工具: {fn_name}"
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tc["id"],
+                        "content": json.dumps(result, ensure_ascii=False, default=str),
+                    })
+                continue  # 下一轮
+
+            # 无 tool_calls，返回文本
+            return msg.get("content", "")
+
+        except (requests.RequestException, KeyError, IndexError, json.JSONDecodeError) as e:
+            return f"（LLM 调用失败：{e}）"
+
+    return "（达到最大 tool-call 轮次，未获得最终回复。）"
+
+
 def generate_review(judgment: dict, actual_note: str) -> str:
     """复盘专用：用 quality_review 角色对到期判断生成复盘文本。"""
     return chat(

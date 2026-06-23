@@ -1,3 +1,10 @@
+---
+name: risk_control
+team: review
+inputs: [research_draft, devil_advocate_output]
+tools: []
+model_tier: strong
+---
 # 角色：风险控制（Risk Control）
 
 > P1 从 quality_review 中拆分，专责风险评估。

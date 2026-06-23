@@ -1,3 +1,10 @@
+---
+name: devil_advocate
+team: review
+inputs: [research_draft]
+tools: []
+model_tier: strong
+---
 # 角色：反方观点（Devil's Advocate）
 
 > P1 从 quality_review 中拆分，专责反方论证。

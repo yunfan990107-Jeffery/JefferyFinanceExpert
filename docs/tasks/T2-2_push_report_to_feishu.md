@@ -26,3 +26,18 @@
 - 文档链接为 `/wiki/`(在知识库内,非 `/base/` 或 `/drive/`)。
 
 **依赖**：lark-cli 已授权。无代码依赖,可立即做。
+
+---
+
+## ✅ 完成记录
+- **任务**：T2-2 本地报告→飞书脚本
+- **状态**：已完成
+- **完成日期 / 负责 agent**：2026-06-23 / ZCode
+- **实现摘要**：
+  1. `scripts/push_report_to_feishu.py`：CLI + 函数双入口
+  2. 流程：建 wiki 节点 → @file 写入内容 → 返回 /wiki/ 链接
+  3. 全程零 LLM 调用，纯 subprocess + lark-cli
+  4. 已验证：推送 `research_memo_600519.md` → `https://qcnsl9sevuhc.feishu.cn/wiki/WMudwUySlidMKckEwBAc9ys1nWb`
+- **改动文件**：
+  - 新增：`scripts/push_report_to_feishu.py`
+- **自验收**：.md→Wiki 成功 ✅；零 LLM ✅；链接为 /wiki/ ✅

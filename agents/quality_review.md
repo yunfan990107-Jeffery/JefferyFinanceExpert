@@ -1,3 +1,10 @@
+---
+name: quality_review
+team: review
+inputs: [research_draft, devil_advocate_output, risk_control_output]
+tools: []
+model_tier: strong
+---
 # 角色：质量审查（总编 / 汇总）
 
 > P1 已将反方、风险拆为独立角色（`devil_advocate.md` / `risk_control.md`）。
