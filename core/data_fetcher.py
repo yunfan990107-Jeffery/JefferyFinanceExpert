@@ -146,34 +146,46 @@ def get_price(code: str) -> dict:
 
 
 def get_kline(code: str, days: int = 300) -> list[dict]:
-    """获取日K线数据。
+    """获取日K线数据（优先本地 SQLite daily_k 表，毫秒级）。
 
     Returns:
         [{date, open, high, low, close, volume}, ...]  按日期升序。
     """
     today = date.today()
-    start = today - timedelta(days=days + 10)  # 多取几天容错
+    start = today - timedelta(days=days + 10)
 
-    # 1. 查缓存
+    # 1) 优先查本地全量 K 线库 daily_k（秒出）
     conn = _get_conn()
+    try:
+        rows = conn.execute(
+            "SELECT date, open, high, low, close, volume FROM daily_k "
+            "WHERE code = ? AND date >= ? ORDER BY date",
+            (code, start.isoformat()),
+        ).fetchall()
+        if len(rows) >= min(days, 5):
+            conn.close()
+            return [_kline_row_to_dict(r) for r in rows[-days:]]
+    except sqlite3.OperationalError:
+        pass  # daily_k 表尚未构建，跳过
+
+    # 2) 回退到旧缓存 kline_cache
     rows = conn.execute(
         "SELECT * FROM kline_cache WHERE code = ? AND date >= ? ORDER BY date",
         (code, start.isoformat()),
     ).fetchall()
-    if len(rows) >= min(days, 200):  # 缓存够用
+    if len(rows) >= min(days, 200):
         conn.close()
         return [_kline_row_to_dict(r) for r in rows[-days:]]
 
-    # 2. 调 AkShare
+    # 3) 调 AkShare（兜底）
     ak = _get_ak()
     if ak is None:
         conn.close()
-        return [_kline_row_to_dict(r) for r in rows]  # 返缓存兜底
+        return [_kline_row_to_dict(r) for r in rows]
 
     try:
         df = ak.stock_zh_a_hist(
-            symbol=code,
-            period="daily",
+            symbol=code, period="daily",
             start_date=start.strftime("%Y%m%d"),
             end_date=today.strftime("%Y%m%d"),
             adjust="qfq",
@@ -187,11 +199,11 @@ def get_kline(code: str, days: int = 300) -> list[dict]:
             )
         conn.commit()
     except Exception:
-        pass  # 网络异常，用缓存兜底
+        pass
     finally:
         conn.close()
 
-    # 重新读缓存（含刚写入的）
+    # 返回缓存（含刚写入的 AkShare 数据）
     conn2 = _get_conn()
     rows2 = conn2.execute(
         "SELECT * FROM kline_cache WHERE code = ? AND date >= ? ORDER BY date",
@@ -456,23 +468,6 @@ def get_price(code: str) -> dict:  # noqa: F811 (redefine intentionally)
         stale = _get_stale_price_cache(code)
         if stale:
             return stale
-
-    return result
-
-
-# 保存原始 get_kline
-_get_kline_original = get_kline
-
-
-def get_kline(code: str, days: int = 300) -> list[dict]:  # noqa: F811
-    """获取 K 线（AkShare → Baostock → stale cache 三级兜底）。"""
-    result = _get_kline_original(code, days)
-    result = _validate_kline_result(result)
-
-    if len(result) < 5:
-        bs_result = _bs_get_kline(code, days)
-        if bs_result and len(bs_result) >= 5:
-            return _validate_kline_result(bs_result[-days:])
 
     return result
 
