@@ -8,6 +8,9 @@ requests>=2.31
 akshare>=1.13
 baostock>=0.9
 
+# 通达信行情（直连 TCP，不依赖 HTTP 爬虫）
+pytdx>=1.72
+
 # API 层（Web 前端）
 fastapi>=0.110
 uvicorn[standard]>=0.27
