@@ -15,7 +15,7 @@ import pandas as pd
 from .config import config
 
 # ── 缓存路径 ────────────────────────────────────────────────────
-CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
+CACHE_DIR = Path(__file__).resolve().parent.parent / "data"
 CACHE_DB = CACHE_DIR / "market_data.sqlite"
 
 # 抑制 akshare 的 FutureWarning / 网络异常噪音

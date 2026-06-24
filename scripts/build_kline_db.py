@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-DB_PATH = Path(__file__).resolve().parent.parent / "cache" / "market_data.sqlite"
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
 
 # ── 通达信服务器列表（按优先级）───────────────────────────────────
 TDX_SERVERS = [

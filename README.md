@@ -24,7 +24,7 @@
 - **飞书** = 云端数据库/系统记录源（判断、持仓、决策、研究、复盘）
 - **Git** = 纯代码库（本仓库），不放数据
 - **WebUI** = Streamlit 轻量界面（本仓库 `app/`），P0 三页
-- **本地缓存** = 行情等可再生数据放 `cache/`（不入 Git）
+- **本地数据** = K 线等可再生数据放 `data/`（不入 Git），通过 `scripts/build_kline_db.py` 生成
 
 ## 技术栈
 Python 3.11+ · Streamlit · 飞书多维表格(Bitable, 经 lark API) · LLM(DeepSeek, OpenAI 兼容) · AkShare(P1) · SQLite(P1) · pandas
@@ -45,7 +45,7 @@ agents/     AI 角色提示词（quality_review.md）
 templates/  研究/风险/决策模板
 docs/       开发约定 + 任务卡(tasks/)
 tests/      单元测试
-cache/      本地行情缓存（gitignore）
+	data/       本地 K 线数据库（gitignore，通过 build_kline_db.py 生成）
 ```
 
 ## 开发环境（本机）

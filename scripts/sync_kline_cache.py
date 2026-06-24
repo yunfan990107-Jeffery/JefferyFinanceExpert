@@ -6,7 +6,7 @@
     python scripts/sync_kline_cache.py --all              # 全市场（慎用，耗时很长）
     python scripts/sync_kline_cache.py --codes 600519,000001  # 指定代码
 
-首次运行拉取历史数据写入 cache/market_data.sqlite。
+首次运行拉取历史数据写入 data/market_data.sqlite。
 后续每天跑一次只需增量（缓存当日已有则跳过）。
 """
 from __future__ import annotations

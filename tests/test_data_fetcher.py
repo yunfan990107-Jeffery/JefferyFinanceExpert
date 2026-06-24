@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-# 确保 cache 目录存在
-CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
+# 确保 data 目录存在
+CACHE_DIR = Path(__file__).resolve().parent.parent / "data"
 CACHE_DB = CACHE_DIR / "market_data.sqlite"
 
 
