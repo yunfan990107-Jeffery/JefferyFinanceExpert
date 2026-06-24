@@ -48,6 +48,34 @@ tests/      单元测试
 cache/      本地行情缓存（gitignore）
 ```
 
+## 开发环境（本机）
+
+| 项 | 值 |
+|---|---|
+| OS | Windows 11 x64 |
+| Shell | Git Bash (MSYS2) |
+| Python | 3.13.13 (Miniconda3 `C:\Users\Jeffery\miniconda3\`) |
+| 虚拟环境 | `.venv`（项目根目录） |
+| Node / npx | 可用 |
+| 通达信服务器 | `218.75.126.9:7709`（pytdx 默认） |
+
+### Git 远程
+
+> ⚠️ **必须用 SSH，不能用 HTTPS。** 本机网络环境下 443 端口连不上 GitHub，只有 SSH 22 端口能通。
+
+```
+git@github.com:yunfan990107-Jeffery/JefferyFinanceExpert.git
+```
+
+SSH 密钥：`~/.ssh/id_ed25519`（已添加至 GitHub）。
+
+如果 push 失败，检查：
+1. VPN 是否开启且节点支持 SSH（22 端口）
+2. `git remote -v` 确认是 `git@github.com:...` 而非 `https://...`
+3. `~/.ssh/id_ed25519` 密钥是否存在
+
+---
+
 ## 现状
 **P0 已全部完成 🎉**：飞书 6 表已建（在知识库内）、`feishu_client` / `calibration` / `portfolio` / `llm_client` 已实现、Streamlit 三页可用、复盘接 DeepSeek 自动点评、一份茅台示范研究已入库。
 下一阶段 **P1**（数据层 AkShare / 个股深度研究 / 信息筛选 / 认知档案）任务卡见 `docs/tasks/T1-*.md`，可分配。
