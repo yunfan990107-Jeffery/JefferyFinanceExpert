@@ -641,7 +641,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    const API_BASE = 'http://localhost:8000';
+    const API_BASE = 'http://localhost:8001';
 
     async function apiFetch(path) {
       try {
@@ -737,33 +737,38 @@
     };
 
     // ═══ DASHBOARD ═══
-    function DashboardPage() {
+    function DashboardPage({ onNavigate }) {
       const [indices, setIndices] = useState(MOCK_INDICES);
-      const [overview, setOverview] = useState(MOCK_OVERVIEW);
       const [news, setNews] = useState(MOCK_NEWS);
       const [pf, setPf] = useState(MOCK_PORTFOLIO);
       const [loading, setLoading] = useState(false);
+      const [klineData, setKlineData] = useState(null);
       const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleString('zh-CN',{hour12:false}));
 
       const refresh = useCallback(async () => {
         setLoading(true);
-        const [idxData, ovData, newsData, pfData] = await Promise.all([
+        const [idxData, newsData, pfData] = await Promise.all([
           apiFetch('/api/market/indices'),
-          apiFetch('/api/market/overview'),
           apiFetch('/api/news/raw?keyword=A股&limit=8'),
           apiFetch('/api/portfolio'),
         ]);
         if (idxData && idxData.length) setIndices(idxData);
-        if (ovData) setOverview(ovData);
         if (newsData && newsData.length) setNews(newsData);
-        if (pfData && pfData.positions) setPf(pfData);
+        if (pfData && pfData.positions) {
+          setPf(pfData);
+          const top = pfData.positions[0];
+          if (top && top.code) {
+            const kData = await apiFetch('/api/stock/kline/' + top.code + '?days=60');
+            if (kData && kData.length) setKlineData({code: top.code, name: top.name, data: kData});
+          }
+        }
         setLastUpdate(new Date().toLocaleString('zh-CN',{hour12:false}));
         setLoading(false);
       }, []);
 
       useEffect(() => { refresh(); }, []);
 
-      const northFlow = '+38.2亿';
+      useEffect(() => { refresh(); }, []);
 
       return (
         <div>
@@ -894,6 +899,24 @@
               </div>
             )}
           </div>
+
+          {/* ═══ K线图：最大持仓 ═══ */}
+          {klineData && (
+            <div className="card" style={{marginBottom: 16}}>
+              <div className="card-header">
+                <span className="card-title">{klineData.name} ({klineData.code}) · 60日K线</span>
+                <div style={{display:'flex',gap:6,fontSize:11,fontFamily:'var(--font-mono)'}}>
+                  <span style={{color:'var(--muted)'}}>O {klineData.data[klineData.data.length-1]?.open?.toFixed(2)}</span>
+                  <span style={{color:'var(--up)'}}>H {klineData.data[klineData.data.length-1]?.high?.toFixed(2)}</span>
+                  <span style={{color:'var(--down)'}}>L {klineData.data[klineData.data.length-1]?.low?.toFixed(2)}</span>
+                  <span style={{color:'var(--text)',fontWeight:600}}>C {klineData.data[klineData.data.length-1]?.close?.toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="chart-container" style={{height:220}}>
+                <KlineChart data={klineData.data} />
+              </div>
+            </div>
+          )}
 
 {/* 底部提示条：校准状态（轻量） */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 16px',background:'var(--primary-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(79,107,255,0.1)'}}>
@@ -1026,6 +1049,37 @@
           </div>
         </div>
       );
+    }
+
+    function KlineChart({ data }) {
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+      const labels = (data || []).map(d => d.date?.slice(5) || '');
+      const closes = (data || []).map(d => d.close);
+
+      useEffect(() => {
+        if (!canvasRef.current || !labels.length) return;
+        if (chartRef.current) chartRef.current.destroy();
+        const ctx = canvasRef.current.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+        gradient.addColorStop(0, 'rgba(79, 107, 255, 0.15)');
+        gradient.addColorStop(1, 'rgba(6, 182, 212, 0.02)');
+        chartRef.current = new Chart(ctx, {
+          type: 'line',
+          data: { labels, datasets: [{ data: closes, borderColor: '#4F6BFF', backgroundColor: gradient, fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#4F6BFF', borderWidth: 2 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => { const i = ctx.dataIndex; const d = data[i]; return d ? `O:${d.open} H:${d.high} L:${d.low} C:${d.close} V:${d.volume?.toLocaleString()}` : ''; } } } },
+            scales: {
+              x: { grid: { color: 'rgba(99,130,255,0.04)' }, ticks: { color: '#8892A8', font: { size: 10 }, maxTicksLimit: 8 } },
+              y: { grid: { color: 'rgba(99,130,255,0.04)' }, ticks: { color: '#8892A8', font: { size: 11, family: 'JetBrains Mono' } } },
+            },
+            interaction: { intersect: false, mode: 'index' },
+          },
+        });
+        return () => { if (chartRef.current) chartRef.current.destroy(); };
+      }, [data]);
+      return <canvas ref={canvasRef} />;
     }
 
     function PriceChart({ data }) {
@@ -1469,14 +1523,14 @@
       const [activePage, setActivePage] = useState('dashboard');
       const renderPage = () => {
         switch(activePage) {
-          case 'dashboard': return <DashboardPage />;
+          case 'dashboard': return <DashboardPage onNavigate={setActivePage} />;
           case 'research': return <ResearchPage />;
           case 'news': return <NewsPage />;
           case 'record': return <RecordPage />;
           case 'review': return <ReviewPage />;
           case 'portfolio': return <PortfolioPage />;
           case 'calibration': return <CalibrationPage />;
-          default: return <DashboardPage />;
+          default: return <DashboardPage onNavigate={setActivePage} />;
         }
       };
       return (
