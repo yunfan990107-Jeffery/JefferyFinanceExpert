@@ -712,9 +712,14 @@
 
     // ═══ MOCK DATA (fallback when API unavailable) ═══
     const MOCK_INDICES = [
-      {name:'上证指数',code:'000001',price:3284.56,change_pct:0.85},
-      {name:'深证成指',code:'399001',price:10892.31,change_pct:1.12},
-      {name:'创业板指',code:'399006',price:2187.45,change_pct:-0.23},
+      {name:'上证指数',code:'000001',price:3284.56,change_pct:0.85,market:'A股'},
+      {name:'深证成指',code:'399001',price:10892.31,change_pct:1.12,market:'A股'},
+      {name:'创业板指',code:'399006',price:2187.45,change_pct:-0.23,market:'A股'},
+      {name:'科创50',code:'000688',price:1123.78,change_pct:1.56,market:'A股'},
+      {name:'纳斯达克',code:'IXIC',price:19876.54,change_pct:0.62,market:'海外'},
+      {name:'恒生指数',code:'HSI',price:21543.21,change_pct:-0.41,market:'海外'},
+      {name:'日经225',code:'N225',price:38456.78,change_pct:0.35,market:'海外'},
+      {name:'韩国KOSPI',code:'KOSPI',price:2891.34,change_pct:-0.18,market:'海外'},
     ];
     const MOCK_OVERVIEW = {up_count:2847,down_count:1892,flat_count:261};
     const MOCK_NEWS = [
@@ -746,6 +751,9 @@
       const [marketTab, setMarketTab] = useState('A股');
       const [newsTab, setNewsTab] = useState('国内');
       const [lastUpdate, setLastUpdate] = useState('');
+
+      // 按当前 tab 筛选指数
+      const visibleIndices = indices.filter(i => i.market === marketTab || (!i.market && marketTab === 'A股'));
 
       // 热门板块 mock
       const sectors = [
@@ -788,16 +796,19 @@
 
       // 当前选中指数的 K 线
       useEffect(() => {
-        const idx = indices[selectedIndex];
+        const idx = visibleIndices[selectedIndex];
         if (idx && idx.code) {
           (async () => {
             const kData = await apiFetch('/api/stock/kline/' + idx.code + '?days=60');
             if (kData && kData.length) setKlineData({name: idx.name, data: kData});
           })();
         }
-      }, [selectedIndex, indices]);
+      }, [selectedIndex, visibleIndices]);
 
-      const curIdx = indices[selectedIndex] || {};
+      // 切换 tab 时重置选中的指数
+      useEffect(() => { setSelectedIndex(0); }, [marketTab]);
+
+      const curIdx = visibleIndices[selectedIndex] || {};
       const upCls = curIdx.change_pct >= 0 ? 'up' : 'down';
 
       return (
@@ -829,7 +840,7 @@
 
             {/* 指数选择按钮 + OHLC */}
             <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}}>
-              {indices.map((idx, i) => (
+              {visibleIndices.map((idx, i) => (
                 <button key={idx.code} onClick={() => setSelectedIndex(i)}
                   style={{padding:'6px 14px',borderRadius:6,border:'1px solid '+(i===selectedIndex?'var(--primary)':'var(--border)'),background:i===selectedIndex?'var(--primary-dim)':'var(--surface)',cursor:'pointer',textAlign:'center',minWidth:80}}>
                   <div style={{fontSize:12,color:'var(--muted)'}}>{idx.name}</div>
