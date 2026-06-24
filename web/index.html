@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrivateFinanceExpert</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #F0F3F8;
+      --bg-grid: rgba(99, 130, 255, 0.03);
+      --surface: rgba(255, 255, 255, 0.72);
+      --surface-solid: #FFFFFF;
+      --surface-hover: rgba(255, 255, 255, 0.9);
+      --raised: #FFFFFF;
+      --border: rgba(99, 130, 255, 0.1);
+      --border-strong: rgba(99, 130, 255, 0.2);
+      --primary: #4F6BFF;
+      --primary-light: #818CF8;
+      --primary-dim: rgba(79, 107, 255, 0.08);
+      --primary-glow: rgba(79, 107, 255, 0.15);
+      --gradient-start: #4F6BFF;
+      --gradient-end: #06B6D4;
+      --text: #1A1F36;
+      --text-secondary: #4A5578;
+      --muted: #8892A8;
+      --up: #10B981;
+      --up-dim: rgba(16, 185, 129, 0.08);
+      --up-border: rgba(16, 185, 129, 0.2);
+      --down: #EF4444;
+      --down-dim: rgba(239, 68, 68, 0.08);
+      --down-border: rgba(239, 68, 68, 0.2);
+      --warning: #F59E0B;
+      --warning-dim: rgba(245, 158, 11, 0.08);
+      --font-display: 'Inter', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 20px;
+      --shadow-sm: 0 1px 3px rgba(79, 107, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+      --shadow-md: 0 4px 16px rgba(79, 107, 255, 0.06), 0 2px 4px rgba(0, 0, 0, 0.02);
+      --shadow-lg: 0 12px 40px rgba(79, 107, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.03);
+      --shadow-glow: 0 0 20px rgba(79, 107, 255, 0.12);
+      --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-layout: 350ms cubic-bezier(0.22, 1, 0.36, 1);
+      --blur: blur(12px);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-display);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.55;
+      overflow: hidden;
+      height: 100vh;
+      /* Subtle dot grid for tech feel */
+      background-image:
+        radial-gradient(circle, rgba(79, 107, 255, 0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    #root {
+      display: flex;
+      height: 100vh;
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary-light); }
+
+    /* ═══ SIDEBAR ═══ */
+    .sidebar {
+      width: 232px;
+      min-width: 232px;
+      background: var(--surface);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 0;
+      box-shadow: 1px 0 12px rgba(79, 107, 255, 0.03);
+    }
+
+    .sidebar-brand {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+
+    .sidebar-brand h1 {
+      font-size: 14px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+      margin-bottom: 3px;
+    }
+
+    .sidebar-brand span {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .nav-section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      padding: 14px 12px 6px;
+      font-weight: 600;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      border: 1px solid transparent;
+      position: relative;
+    }
+
+    .nav-item:hover {
+      background: var(--primary-dim);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: rgba(79, 107, 255, 0.12);
+      color: var(--primary);
+      border-color: var(--primary-glow);
+      font-weight: 600;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 18px;
+      background: linear-gradient(180deg, var(--gradient-start), var(--gradient-end));
+      border-radius: 0 3px 3px 0;
+    }
+
+    .nav-item svg {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    .nav-item.active svg { opacity: 1; }
+
+    .sidebar-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ═══ MAIN CONTENT ═══ */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 28px 36px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .page-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .page-header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ═══ CARDS ═══ */
+    .card {
+      background: var(--surface);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      transition: all var(--transition-fast);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+    }
+
+    /* ═══ METRIC CARDS ═══ */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--surface);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      transition: all var(--transition-fast);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+    }
+
+    .metric-card:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .metric-card:hover::before {
+      opacity: 1;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.03em;
+    }
+
+    .metric-value.primary {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .metric-value.up { color: var(--up); }
+    .metric-value.down { color: var(--down); }
+
+    .metric-delta {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .metric-delta.up {
+      color: var(--up);
+      background: var(--up-dim);
+      border: 1px solid var(--up-border);
+    }
+
+    .metric-delta.down {
+      color: var(--down);
+      background: var(--down-dim);
+      border: 1px solid var(--down-border);
+    }
+
+    /* ═══ GRID LAYOUT ═══ */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    /* ═══ TABLE ═══ */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      transition: all var(--transition-fast);
+    }
+
+    .data-table tr:hover td {
+      color: var(--text);
+      background: var(--primary-dim);
+    }
+
+    .data-table .mono {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .data-table .up { color: var(--up); }
+    .data-table .down { color: var(--down); }
+
+    /* ═══ TAGS ═══ */
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .tag-must-read { background: var(--down-dim); color: var(--down); border: 1px solid var(--down-border); }
+    .tag-readable { background: var(--primary-dim); color: var(--primary); border: 1px solid rgba(79, 107, 255, 0.2); }
+    .tag-ignore { background: rgba(136, 146, 168, 0.08); color: var(--muted); border: 1px solid rgba(136, 146, 168, 0.15); }
+    .tag-up { background: var(--up-dim); color: var(--up); border: 1px solid var(--up-border); }
+    .tag-down { background: var(--down-dim); color: var(--down); border: 1px solid var(--down-border); }
+
+    /* ═══ BUTTONS ═══ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      border: 1px solid var(--border-strong);
+      background: var(--surface-solid);
+      color: var(--text-secondary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn:hover {
+      border-color: var(--primary-light);
+      color: var(--primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      border: none;
+      color: #FFFFFF;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(79, 107, 255, 0.25);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 16px rgba(79, 107, 255, 0.35);
+      transform: translateY(-1px);
+      color: #FFFFFF;
+    }
+
+    /* ═══ CHART ═══ */
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 200px;
+    }
+
+    .chart-container canvas {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    /* ═══ FORMS ═══ */
+    .form-group { margin-bottom: 18px; }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      letter-spacing: 0.2px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--surface-solid);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      font-size: 14px;
+      font-family: var(--font-display);
+      transition: all var(--transition-fast);
+      outline: none;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow), var(--shadow-sm);
+    }
+
+    .form-input::placeholder { color: var(--muted); }
+    select.form-input { appearance: none; cursor: pointer; }
+    textarea.form-input { resize: vertical; min-height: 80px; }
+
+    /* ═══ SLIDER ═══ */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+      border-radius: 3px;
+      outline: none;
+      opacity: 0.7;
+      transition: opacity var(--transition-fast);
+    }
+
+    .slider:hover { opacity: 1; }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--surface-solid);
+      cursor: pointer;
+      border: 3px solid var(--primary);
+      box-shadow: 0 2px 6px rgba(79, 107, 255, 0.3);
+    }
+
+    .slider-value {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ═══ NEWS ═══ */
+    .news-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      transition: all var(--transition-fast);
+      margin: 0 -12px;
+    }
+
+    .news-item:hover {
+      background: var(--primary-dim);
+      border-color: transparent;
+    }
+
+    .news-item:last-child { border-bottom: none; }
+
+    .news-time {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      min-width: 44px;
+      font-weight: 500;
+    }
+
+    .news-content { flex: 1; }
+
+    .news-title {
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
+
+    .news-summary {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ═══ ATTRIBUTION ═══ */
+    .attribution-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 3px;
+      background: var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      height: 210px;
+    }
+
+    .attribution-cell {
+      background: var(--surface-solid);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transition: all var(--transition-fast);
+    }
+
+    .attribution-cell:hover {
+      background: var(--primary-dim);
+    }
+
+    .attribution-cell .cell-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .attribution-cell .cell-value {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 1200px) {
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main-content { padding: 16px; }
+      .metrics-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const API_BASE = 'http://localhost:8000';
+
+    async function apiFetch(path) {
+      try {
+        const resp = await fetch(API_BASE + path);
+        if (!resp.ok) throw new Error(resp.statusText);
+        const json = await resp.json();
+        return json.data ?? json;
+      } catch (e) {
+        console.warn('[API]', path, e.message);
+        return null;
+      }
+    }
+
+    const Icons = {
+      dashboard: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
+      research: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/><path d="M8 11h6M11 8v6"/></svg>,
+      news: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v16H4z" rx="2"/><path d="M4 8h16"/><path d="M8 4v4"/><rect x="10" y="11" width="8" height="2.5" rx="0.5"/><rect x="10" y="15" width="5" height="2" rx="0.5"/></svg>,
+      record: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>,
+      review: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 105.42-8.37L1 10"/></svg>,
+      portfolio: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/></svg>,
+      calibration: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
+    };
+
+    const navItems = [
+      { id: 'dashboard', label: '仪表盘', icon: 'dashboard', section: '概览' },
+      { id: 'research', label: '个股分析', icon: 'research', section: '分析' },
+      { id: 'news', label: '信息总览', icon: 'news', section: '分析' },
+      { id: 'record', label: '记判断', icon: 'record', section: '操作' },
+      { id: 'review', label: '复盘中心', icon: 'review', section: '操作' },
+      { id: 'portfolio', label: '持仓看板', icon: 'portfolio', section: '操作' },
+      { id: 'calibration', label: '校准报告', icon: 'calibration', section: '提升' },
+    ];
+
+    function Sidebar({ activePage, onNavigate }) {
+      const sections = {};
+      navItems.forEach(item => {
+        if (!sections[item.section]) sections[item.section] = [];
+        sections[item.section].push(item);
+      });
+
+      return (
+        <aside className="sidebar">
+          <div className="sidebar-brand">
+            <h1>PrivateFinanceExpert</h1>
+            <span>AI 投资分析系统</span>
+          </div>
+          <nav className="sidebar-nav">
+            {Object.entries(sections).map(([section, items]) => (
+              <React.Fragment key={section}>
+                <div className="nav-section-label">{section}</div>
+                {items.map(item => (
+                  <div
+                    key={item.id}
+                    className={`nav-item ${activePage === item.id ? 'active' : ''}`}
+                    onClick={() => onNavigate(item.id)}
+                  >
+                    {Icons[item.icon]}
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </React.Fragment>
+            ))}
+          </nav>
+          <div className="sidebar-footer">v0.2.0 · 2026-06-24</div>
+        </aside>
+      );
+    }
+
+    // ═══ MOCK DATA (fallback when API unavailable) ═══
+    const MOCK_INDICES = [
+      {name:'上证指数',code:'000001',price:3284.56,change_pct:0.85},
+      {name:'深证成指',code:'399001',price:10892.31,change_pct:1.12},
+      {name:'创业板指',code:'399006',price:2187.45,change_pct:-0.23},
+    ];
+    const MOCK_OVERVIEW = {up_count:2847,down_count:1892,flat_count:261};
+    const MOCK_NEWS = [
+      {title:'央行宣布下调MLF利率10bp',summary:'利好银行与地产板块，关注资金面变化',importance:'必读',source:'财联社',time:'09:32'},
+      {title:'宁德时代发布固态电池量产时间表',summary:'2027年量产，影响新能源估值逻辑',importance:'必读',source:'证券时报',time:'09:15'},
+      {title:'北向资金连续6日净流入，累计82亿',summary:'偏好消费+半导体',importance:'可读',source:'东方财富',time:'08:50'},
+      {title:'半导体设备国产化率突破40%',summary:'中芯国际、北方华创受益',importance:'可读',source:'科创板日报',time:'08:30'},
+      {title:'美联储议息纪要释放偏鸽信号',summary:'年内降息预期升温',importance:'可读',source:'Reuters',time:'07:45'},
+    ];
+    const MOCK_PORTFOLIO = {
+      positions:[
+        {code:'600519',name:'贵州茅台',price:1935.20,cost:1680,qty:20,pnl_pct:15.19,weight:28.5,market_value:38704},
+        {code:'300750',name:'宁德时代',price:211.08,cost:218.50,qty:130,pnl_pct:-3.40,weight:22.1,market_value:27440},
+        {code:'688981',name:'中芯国际',price:56.86,cost:52.30,qty:400,pnl_pct:8.72,weight:18.3,market_value:22744},
+        {code:'002594',name:'比亚迪',price:275.87,cost:265,qty:70,pnl_pct:4.10,weight:15.6,market_value:19311},
+        {code:'600036',name:'招商银行',price:35.83,cost:35.20,qty:300,pnl_pct:1.79,weight:8.2,market_value:10749},
+      ],
+      total_value:1284530,total_pnl:76050,total_pnl_pct:6.3,
+      concentration:{max_single_weight:28.5}
+    };
+
+    // ═══ DASHBOARD ═══
+    function DashboardPage() {
+      const [indices, setIndices] = useState(MOCK_INDICES);
+      const [overview, setOverview] = useState(MOCK_OVERVIEW);
+      const [news, setNews] = useState(MOCK_NEWS);
+      const [pf, setPf] = useState(MOCK_PORTFOLIO);
+      const [loading, setLoading] = useState(false);
+      const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleString('zh-CN',{hour12:false}));
+
+      const refresh = useCallback(async () => {
+        setLoading(true);
+        const [idxData, ovData, newsData, pfData] = await Promise.all([
+          apiFetch('/api/market/indices'),
+          apiFetch('/api/market/overview'),
+          apiFetch('/api/news/raw?keyword=A股&limit=8'),
+          apiFetch('/api/portfolio'),
+        ]);
+        if (idxData && idxData.length) setIndices(idxData);
+        if (ovData) setOverview(ovData);
+        if (newsData && newsData.length) setNews(newsData);
+        if (pfData && pfData.positions) setPf(pfData);
+        setLastUpdate(new Date().toLocaleString('zh-CN',{hour12:false}));
+        setLoading(false);
+      }, []);
+
+      useEffect(() => { refresh(); }, []);
+
+      const northFlow = '+38.2亿';
+
+      return (
+        <div>
+          <div className="page-header">
+            <h2>仪表盘</h2>
+            <div className="page-header-actions">
+              <span style={{fontSize:12,color:'var(--muted)',fontFamily:'var(--font-mono)'}}>{lastUpdate}</span>
+              <button className="btn" onClick={refresh} disabled={loading}>{loading ? '加载中...' : '刷新'}</button>
+            </div>
+          </div>
+
+          {/* ═══ 第一区：三大指数 ═══ */}
+          <div className="metrics-grid" style={{gridTemplateColumns:'repeat(3, 1fr)', marginBottom: 20}}>
+            {indices.map(idx => (
+              <div className="metric-card" key={idx.code}>
+                <div className="metric-label">{idx.name}</div>
+                <div className="metric-value" style={{fontSize:20}}>{idx.price ? idx.price.toLocaleString() : '--'}</div>
+                <div className={`metric-delta ${idx.change_pct >= 0 ? 'up' : 'down'}`}>
+                  {idx.change_pct >= 0 ? '+' : ''}{idx.change_pct?.toFixed(2)}%
+                </div>
+              </div>
+            ))}
+
+
+          </div>
+
+          {/* 市场温度条 */}
+          <div className="card" style={{marginBottom: 20, padding: '14px 22px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <span className="card-title" style={{margin:0}}>市场情绪</span>
+                <div style={{width:200,height:8,borderRadius:4,background:'linear-gradient(90deg, var(--down), var(--warning), var(--up))',position:'relative'}}>
+                  <div style={{position:'absolute',left:'62%',top:-3,width:14,height:14,borderRadius:'50%',background:'var(--surface-solid)',border:'2px solid var(--up)',transform:'translateX(-50%)'}}></div>
+                </div>
+                <span className="mono" style={{fontSize:12,color:'var(--up)',fontWeight:600}}>偏多 62</span>
+              </div>
+              <div style={{display:'flex',gap:16,fontSize:12,color:'var(--text-secondary)'}}>
+                <span>10Y国债: <span className="mono" style={{color:'var(--text)'}}>2.31%</span></span>
+                <span>美元/人民币: <span className="mono" style={{color:'var(--text)'}}>7.12</span></span>
+                <span>VIX: <span className="mono" style={{color:'var(--up)'}}>14.2</span></span>
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ 第二区：重要新闻 ═══ */}
+          <div className="card" style={{marginBottom: 20}}>
+            <div className="card-header">
+              <span className="card-title">今日重要信息</span>
+              <button className="btn" style={{padding:'4px 10px',fontSize:11}}>查看全部 →</button>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              {/* 必读 - 大卡片 */}
+              <div style={{padding:'16px 18px',background:'var(--warning-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(245,158,11,0.2)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                  <span className="tag tag-must-read">必读</span>
+                  <span style={{fontSize:11,color:'var(--muted)',fontFamily:'var(--font-mono)'}}>09:32 · 财联社</span>
+                </div>
+                <div style={{fontSize:14,fontWeight:600,color:'var(--text)',marginBottom:6}}>央行宣布下调MLF利率10bp</div>
+                <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6}}>一年期MLF利率从2.75%下调至2.65%，释放宽松信号。直接利好银行间流动性，间接利好地产、基建板块。需关注后续LPR是否跟调。</div>
+                <div style={{marginTop:8,display:'flex',gap:6}}>
+                  <span style={{fontSize:11,padding:'2px 6px',borderRadius:4,background:'var(--primary-dim)',color:'var(--primary)'}}>银行</span>
+                  <span style={{fontSize:11,padding:'2px 6px',borderRadius:4,background:'var(--primary-dim)',color:'var(--primary)'}}>地产</span>
+                  <span style={{fontSize:11,padding:'2px 6px',borderRadius:4,background:'var(--primary-dim)',color:'var(--primary)'}}>利率敏感</span>
+                </div>
+              </div>
+              <div style={{padding:'16px 18px',background:'var(--warning-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(245,158,11,0.2)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                  <span className="tag tag-must-read">必读</span>
+                  <span style={{fontSize:11,color:'var(--muted)',fontFamily:'var(--font-mono)'}}>09:15 · 证券时报</span>
+                </div>
+                <div style={{fontSize:14,fontWeight:600,color:'var(--text)',marginBottom:6}}>宁德时代发布固态电池量产时间表</div>
+                <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.6}}>公司宣布2027年实现固态电池量产，能量密度提升50%。将颠覆现有液态电池供应链格局，隔膜/电解液企业承压。</div>
+                <div style={{marginTop:8,display:'flex',gap:6}}>
+                  <span style={{fontSize:11,padding:'2px 6px',borderRadius:4,background:'var(--primary-dim)',color:'var(--primary)'}}>宁德时代</span>
+                  <span style={{fontSize:11,padding:'2px 6px',borderRadius:4,background:'var(--primary-dim)',color:'var(--primary)'}}>新能源</span>
+                  <span style={{fontSize:11,padding:'2px 6px',borderRadius:4,background:'var(--warning-dim)',color:'var(--warning)'}}>持仓相关</span>
+                </div>
+              </div>
+            </div>
+            {/* 可读 - 紧凑列表 */}
+            <div style={{marginTop:12,borderTop:'1px solid var(--border)',paddingTop:12}}>
+              <div style={{display:'flex',alignItems:'center',gap:12,padding:'6px 0'}}>
+                <span className="tag tag-readable">可读</span>
+                <span style={{fontSize:13,color:'var(--text)',fontWeight:500,flex:1}}>北向资金连续6日净流入，累计82亿，偏好消费+半导体</span>
+                <span style={{fontSize:11,color:'var(--muted)',fontFamily:'var(--font-mono)'}}>08:50</span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:12,padding:'6px 0'}}>
+                <span className="tag tag-readable">可读</span>
+                <span style={{fontSize:13,color:'var(--text)',fontWeight:500,flex:1}}>半导体设备国产化率突破40%，中芯国际、北方华创受益</span>
+                <span style={{fontSize:11,color:'var(--muted)',fontFamily:'var(--font-mono)'}}>08:30</span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:12,padding:'6px 0'}}>
+                <span className="tag tag-readable">可读</span>
+                <span style={{fontSize:13,color:'var(--text)',fontWeight:500,flex:1}}>美联储议息纪要释放偏鸽信号，年内降息预期升温</span>
+                <span style={{fontSize:11,color:'var(--muted)',fontFamily:'var(--font-mono)'}}>07:45</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ 第三区：持仓摘要 ═══ */}
+          <div className="card" style={{marginBottom: 16}}>
+            <div className="card-header">
+              <span className="card-title">我的持仓</span>
+              <span style={{fontSize:12,color:'var(--primary)',cursor:'pointer'}} onClick={()=>onNavigate('portfolio')}>详情 →</span>
+            </div>
+            <div style={{display:'flex',gap:24,alignItems:'flex-start'}}>
+              <div style={{minWidth:140}}>
+                <div style={{fontFamily:'var(--font-mono)',fontSize:22,fontWeight:700,background:'linear-gradient(135deg, var(--gradient-start), var(--gradient-end))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>¥ {pf.total_value?.toLocaleString()}</div>
+                <div className={`metric-delta ${pf.total_pnl >= 0 ? 'up' : 'down'}`} style={{marginTop:6}}>
+                  {pf.total_pnl >= 0 ? '+' : ''}¥{pf.total_pnl?.toLocaleString()} ({pf.total_pnl_pct >= 0 ? '+' : ''}{pf.total_pnl_pct}%)
+                </div>
+              </div>
+              <div style={{flex:1,display:'flex',gap:12}}>
+                {pf.positions?.slice(0,5).map(p => (
+                  <div key={p.code} style={{flex:1,textAlign:'center',padding:'4px 8px',borderRadius:'var(--radius-sm)',background:'var(--primary-dim)'}}>
+                    <div style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{p.name?.slice(0,3)}</div>
+                    <div style={{width:'100%',height:4,background:'var(--border)',borderRadius:2,margin:'6px 0'}}>
+                      <div style={{width:Math.min(p.weight,100)+'%',height:'100%',background:p.pnl_pct>=0?'var(--up)':'var(--down)',borderRadius:2,minWidth:4}}></div>
+                    </div>
+                    <div style={{fontSize:11,fontFamily:'var(--font-mono)',color:p.pnl_pct>=0?'var(--up)':'var(--down)'}}>{p.pnl_pct >= 0 ? '+' : ''}{p.pnl_pct}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {pf.concentration?.max_single_weight > 25 && (
+              <div style={{marginTop:10,padding:'6px 10px',borderRadius:'var(--radius-sm)',background:'var(--warning-dim)',fontSize:11,color:'var(--warning)'}}>
+                集中度预警: 最大单标 {pf.concentration.max_single_weight}%
+              </div>
+            )}
+          </div>
+
+{/* 底部提示条：校准状态（轻量） */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 16px',background:'var(--primary-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(79,107,255,0.1)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:12,fontSize:12,color:'var(--text-secondary)'}}>
+              <span style={{fontWeight:600,color:'var(--primary)'}}>校准提醒</span>
+              <span>本月 Brier 0.18 (良好) · 3 条判断待复盘 · 中芯国际连续2次判断失误</span>
+            </div>
+            <button className="btn" style={{padding:'4px 10px',fontSize:11}}>去复盘 →</button>
+          </div>
+        </div>
+      );
+    }
+
+    function CalibrationChart() {
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+      useEffect(() => {
+        if (!canvasRef.current) return;
+        if (chartRef.current) chartRef.current.destroy();
+        const ctx = canvasRef.current.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, 'rgba(79, 107, 255, 0.12)');
+        gradient.addColorStop(1, 'rgba(79, 107, 255, 0)');
+        chartRef.current = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ['0-20%', '20-40%', '40-60%', '60-80%', '80-100%'],
+            datasets: [
+              { label: '实际命中率', data: [15, 32, 48, 72, 78], borderColor: '#4F6BFF', backgroundColor: gradient, fill: true, tension: 0.4, pointBackgroundColor: '#4F6BFF', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5 },
+              { label: '理想校准', data: [10, 30, 50, 70, 90], borderColor: '#CBD5E1', borderDash: [5, 5], pointRadius: 0, tension: 0 },
+            ],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: true, position: 'top', align: 'end', labels: { color: '#8892A8', font: { size: 11, family: 'Inter' }, boxWidth: 12, padding: 12 } } },
+            scales: {
+              x: { grid: { color: 'rgba(99, 130, 255, 0.06)' }, ticks: { color: '#8892A8', font: { size: 11 } } },
+              y: { min: 0, max: 100, grid: { color: 'rgba(99, 130, 255, 0.06)' }, ticks: { color: '#8892A8', font: { size: 11, family: 'JetBrains Mono' }, callback: v => v + '%' } },
+            },
+          },
+        });
+        return () => { if (chartRef.current) chartRef.current.destroy(); };
+      }, []);
+      return <canvas ref={canvasRef} />;
+    }
+
+    // ═══ RESEARCH ═══
+    function ResearchPage() {
+      const [query, setQuery] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [fundamentals, setFundamentals] = useState({pe:25.4,pb:6.2,revenue_growth:18.3,profit_growth:12.7,roe:28.6,dividend_yield:1.8});
+      const [technicals, setTechnicals] = useState({ma5:1856,ma20:1823,ma60:1790,macd:'金叉 (DIF: 12.3)',kdj:'超买 (K:82)',volume_change:35,volatility:18.5,support:1780,resistance:1900});
+      const [report, setReport] = useState({editor:'白酒龙头基本面扎实，当前估值处于历史中位偏低。短期技术面偏多，但KDJ超买需注意回调风险。建议逢低布局。',bear:'消费降级趋势明显，高端白酒需求可能见顶。批价体系有松动迹象，需密切关注经销商库存周期。',risk:'单只仓位已28.5%，超集中度阈值。若继续加仓需同步对冲或设定严格止损位。政策面关注消费税改革。'});
+      const [klineData, setKlineData] = useState(null);
+
+      const doResearch = useCallback(async () => {
+        if (!query.trim()) return;
+        setLoading(true);
+        const [fundData, researchData, kData] = await Promise.all([
+          apiFetch('/api/stock/fundamentals/' + query.trim()),
+          apiFetch('/api/research/' + query.trim()),
+          apiFetch('/api/stock/kline/' + query.trim()),
+        ]);
+        if (fundData) setFundamentals(prev => ({...prev, ...fundData}));
+        if (researchData) {
+          if (researchData.technicals) setTechnicals(prev => ({...prev, ...researchData.technicals}));
+          if (researchData.report) setReport(prev => ({...prev, ...researchData.report}));
+        }
+        if (kData) setKlineData(kData);
+        setLoading(false);
+      }, [query]);
+
+      return (
+        <div>
+          <div className="page-header"><h2>个股分析</h2></div>
+          <div style={{marginBottom:24,display:'flex',gap:10}}>
+            <input className="form-input" placeholder="输入股票代码，如 600519" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doResearch()} style={{maxWidth:480}} />
+            <button className="btn btn-primary" onClick={doResearch} disabled={loading}>{loading?'分析中...':'开始分析'}</button>
+          </div>
+
+          <div className="grid-2">
+            <div className="card">
+              <div className="card-header"><span className="card-title">基本面</span></div>
+              <table className="data-table"><tbody>
+                <tr><td>市盈率 PE(TTM)</td><td className="mono">{fundamentals.pe}x</td></tr>
+                <tr><td>市净率 PB</td><td className="mono">{fundamentals.pb}x</td></tr>
+                <tr><td>营收增速 YoY</td><td className={`mono ${fundamentals.revenue_growth>=0?'up':'down'}`}>{fundamentals.revenue_growth>=0?'+':''}{fundamentals.revenue_growth}%</td></tr>
+                <tr><td>净利润增速</td><td className={`mono ${fundamentals.profit_growth>=0?'up':'down'}`}>{fundamentals.profit_growth>=0?'+':''}{fundamentals.profit_growth}%</td></tr>
+                <tr><td>ROE</td><td className="mono">{fundamentals.roe}%</td></tr>
+                <tr><td>股息率</td><td className="mono">{fundamentals.dividend_yield}%</td></tr>
+              </tbody></table>
+            </div>
+            <div className="card">
+              <div className="card-header"><span className="card-title">技术指标</span></div>
+              <table className="data-table"><tbody>
+                <tr><td>MA5 / MA20 / MA60</td><td className="mono">{technicals.ma5} / {technicals.ma20} / {technicals.ma60}</td></tr>
+                <tr><td>MACD</td><td className="mono up">{technicals.macd}</td></tr>
+                <tr><td>KDJ</td><td className="mono" style={{color:'var(--warning)'}}>{technicals.kdj}</td></tr>
+                <tr><td>成交量</td><td className="mono">放量 (+{technicals.volume_change}%)</td></tr>
+                <tr><td>60日波动率</td><td className="mono">{technicals.volatility}%</td></tr>
+                <tr><td>支撑/压力</td><td className="mono">{technicals.support} / {technicals.resistance}</td></tr>
+              </tbody></table>
+            </div>
+          </div>
+
+          <div className="card" style={{marginBottom:16}}>
+            <div className="card-header">
+              <span className="card-title">AI 研究报告</span>
+              <span style={{fontSize:11,color:'var(--muted)',fontFamily:'var(--font-mono)'}}>Multi-Agent · DeepSeek</span>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginTop:8}}>
+              <div style={{padding:16,background:'var(--primary-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(79,107,255,0.12)'}}>
+                <div style={{fontSize:11,color:'var(--primary)',fontWeight:700,marginBottom:8}}>总编观点</div>
+                <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.editor}</div>
+              </div>
+              <div style={{padding:16,background:'var(--warning-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(245,158,11,0.2)'}}>
+                <div style={{fontSize:11,color:'var(--down)',fontWeight:700,marginBottom:8}}>反方观点</div>
+                <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.bear}</div>
+              </div>
+              <div style={{padding:16,background:'var(--warning-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(245,158,11,0.2)'}}>
+                <div style={{fontSize:11,color:'var(--warning)',fontWeight:700,marginBottom:8}}>风控提示</div>
+                <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.risk}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header"><span className="card-title">K线图 · 60日</span></div>
+            <div className="chart-container" style={{height:240}}><PriceChart data={klineData} /></div>
+          </div>
+        </div>
+      );
+    }
+
+    function PriceChart({ data }) {
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+      const defaultLabels = Array.from({length:30}, (_,i) => `06/${String(i+1).padStart(2,'0')}`);
+      const defaultPrices = [1780,1795,1810,1805,1820,1835,1828,1840,1850,1845,1860,1855,1870,1865,1880,1875,1890,1885,1895,1900,1892,1905,1910,1898,1915,1920,1912,1925,1918,1930];
+      const labels = (data && data.dates) ? data.dates : defaultLabels;
+      const prices = (data && data.closes) ? data.closes : defaultPrices;
+
+      useEffect(() => {
+        if (!canvasRef.current) return;
+        if (chartRef.current) chartRef.current.destroy();
+        const ctx = canvasRef.current.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+        gradient.addColorStop(0, 'rgba(79, 107, 255, 0.15)');
+        gradient.addColorStop(1, 'rgba(6, 182, 212, 0.02)');
+        chartRef.current = new Chart(ctx, {
+          type: 'line',
+          data: { labels, datasets: [{ data: prices, borderColor: '#4F6BFF', backgroundColor: gradient, fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#4F6BFF', pointHoverBorderColor: '#fff', borderWidth: 2.5 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(99,130,255,0.04)' }, ticks: { color: '#8892A8', font: { size: 10 }, maxTicksLimit: 8 } },
+              y: { grid: { color: 'rgba(99,130,255,0.04)' }, ticks: { color: '#8892A8', font: { size: 11, family: 'JetBrains Mono' }, callback: v => '¥'+v } },
+            },
+            interaction: { intersect: false, mode: 'index' },
+          },
+        });
+        return () => { if (chartRef.current) chartRef.current.destroy(); };
+      }, [labels, prices]);
+      return <canvas ref={canvasRef} />;
+    }
+
+    // ═══ NEWS ═══
+    function NewsPage() {
+      const [filter, setFilter] = useState('all');
+      const [keyword, setKeyword] = useState('A股');
+      const [loading, setLoading] = useState(false);
+      const [newsData, setNewsData] = useState([
+        { time:'09:32', importance:'must-read', title:'央行宣布下调MLF利率10bp', summary:'利好银行与地产板块，关注资金面变化', source:'财联社' },
+        { time:'09:15', importance:'must-read', title:'宁德时代发布固态电池量产时间表', summary:'2027年量产目标，影响新能源估值逻辑', source:'证券时报' },
+        { time:'08:50', importance:'readable', title:'北向资金连续5日净流入', summary:'累计流入82亿，偏好消费+半导体', source:'东方财富' },
+        { time:'08:30', importance:'readable', title:'半导体设备国产化率突破40%', summary:'中芯国际、北方华创受益明显', source:'科创板日报' },
+        { time:'08:10', importance:'ignore', title:'某券商发布研报维持"买入"评级', summary:'目标价上调至2100元', source:'研报' },
+        { time:'07:45', importance:'readable', title:'美联储议息会议纪要释放偏鸽信号', summary:'年内降息预期升温，利好新兴市场资金流', source:'Reuters' },
+        { time:'07:20', importance:'ignore', title:'某白酒企业参加行业展会', summary:'常规活动，对基本面影响有限', source:'酒业内参' },
+      ]);
+
+      const fetchNews = useCallback(async (useAI) => {
+        setLoading(true);
+        const endpoint = useAI ? `/api/news?keyword=${keyword}&limit=15` : `/api/news/raw?keyword=${keyword}&limit=20`;
+        const data = await apiFetch(endpoint);
+        if (data && data.length) {
+          setNewsData(data.map(item => ({
+            time: item.time || item.datetime || '',
+            importance: item.importance || item.level || 'readable',
+            title: item.title || '',
+            summary: item.summary || item.content || '',
+            source: item.source || '',
+          })));
+        }
+        setLoading(false);
+      }, [keyword]);
+
+      useEffect(() => { fetchNews(false); }, []);
+
+      const filtered = filter === 'all' ? newsData : newsData.filter(n => n.importance === filter);
+      const btnStyle = (f) => filter === f ? {borderColor:'var(--primary)',color:'var(--primary)',background:'var(--primary-dim)'} : {};
+
+      return (
+        <div>
+          <div className="page-header">
+            <h2>信息总览</h2>
+            <div className="page-header-actions">
+              <input className="form-input" value={keyword} onChange={e=>setKeyword(e.target.value)} placeholder="关键词" style={{width:120,marginRight:8}} />
+              <button className="btn btn-primary" onClick={()=>fetchNews(true)} disabled={loading}>{loading?'加载中...':'AI分级'}</button>
+              <button className="btn" onClick={()=>fetchNews(false)} disabled={loading}>原始</button>
+              <span style={{width:1,height:20,background:'var(--border)',margin:'0 8px'}}></span>
+              <button className="btn" onClick={()=>setFilter('all')} style={btnStyle('all')}>全部</button>
+              <button className="btn" onClick={()=>setFilter('must-read')} style={btnStyle('must-read')}>必读</button>
+              <button className="btn" onClick={()=>setFilter('readable')} style={btnStyle('readable')}>可读</button>
+            </div>
+          </div>
+          <div className="card">
+            {filtered.map((item, i) => (
+              <div className="news-item" key={i}>
+                <span className="news-time">{item.time}</span>
+                <span className={`tag ${item.importance==='must-read'?'tag-must-read':item.importance==='readable'?'tag-readable':'tag-ignore'}`}>
+                  {item.importance==='must-read'?'必读':item.importance==='readable'?'可读':'忽略'}
+                </span>
+                <div className="news-content">
+                  <div className="news-title">{item.title}</div>
+                  <div className="news-summary">{item.summary} · <span style={{color:'var(--muted)'}}>{item.source}</span></div>
+                </div>
+              </div>
+            ))}
+            {filtered.length === 0 && <div style={{padding:24,textAlign:'center',color:'var(--muted)'}}>暂无数据</div>}
+          </div>
+        </div>
+      );
+    }
+
+    // ═══ RECORD ═══
+    function RecordPage() {
+      const [confidence, setConfidence] = useState(60);
+      const [target, setTarget] = useState('');
+      const [direction, setDirection] = useState('看涨');
+      const [horizon, setHorizon] = useState('1周');
+      const [basis, setBasis] = useState('');
+      const [falsify, setFalsify] = useState('');
+      const [submitting, setSubmitting] = useState(false);
+      const [msg, setMsg] = useState('');
+
+      const handleSubmit = useCallback(async () => {
+        if (!target.trim()) { setMsg('请输入标的'); return; }
+        setSubmitting(true); setMsg('');
+        try {
+          const resp = await fetch(API_BASE + '/api/judgments', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ target, direction, confidence: Number(confidence), horizon, basis, falsify }),
+          });
+          const json = await resp.json();
+          if (json.record_id) {
+            setMsg('提交成功！');
+            setTarget(''); setConfidence(60); setBasis(''); setFalsify('');
+          } else {
+            setMsg('提交失败: ' + (json.error || '未知错误'));
+          }
+        } catch(e) { setMsg('网络错误: ' + e.message); }
+        setSubmitting(false);
+      }, [target, direction, confidence, horizon, basis, falsify]);
+
+      const handleClear = () => { setTarget(''); setDirection('看涨'); setHorizon('1周'); setConfidence(60); setBasis(''); setFalsify(''); setMsg(''); };
+
+      return (
+        <div>
+          <div className="page-header"><h2>记判断</h2></div>
+          <div className="card" style={{maxWidth:640}}>
+            <div className="form-group">
+              <label className="form-label">标的</label>
+              <input className="form-input" placeholder="输入股票代码或名称" value={target} onChange={e=>setTarget(e.target.value)} />
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+              <div className="form-group">
+                <label className="form-label">方向</label>
+                <select className="form-input" value={direction} onChange={e=>setDirection(e.target.value)}><option>看涨</option><option>看跌</option><option>震荡</option></select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">时间窗口</label>
+                <select className="form-input" value={horizon} onChange={e=>setHorizon(e.target.value)}><option>1周</option><option>2周</option><option>1个月</option><option>3个月</option></select>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">置信度: <span style={{color:'var(--primary)',fontFamily:'var(--font-mono)',fontWeight:700}}>{confidence}%</span></label>
+              <div className="slider-container">
+                <span className="mono" style={{fontSize:11,color:'var(--muted)'}}>0</span>
+                <input type="range" className="slider" min="0" max="100" value={confidence} onChange={e=>setConfidence(e.target.value)} />
+                <span className="mono" style={{fontSize:11,color:'var(--muted)'}}>100</span>
+                <span className="slider-value">{confidence}</span>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">判断依据</label>
+              <textarea className="form-input" placeholder="描述你做出此判断的逻辑和依据..." rows="3" value={basis} onChange={e=>setBasis(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">证伪条件</label>
+              <textarea className="form-input" placeholder="什么情况下你会认为判断错误？" rows="2" value={falsify} onChange={e=>setFalsify(e.target.value)} />
+            </div>
+            {msg && <div style={{padding:'8px 12px',borderRadius:'var(--radius-sm)',marginBottom:12,fontSize:12,background:msg.includes('成功')?'var(--up-dim)':'var(--down-dim)',color:msg.includes('成功')?'var(--up)':'var(--down)'}}>{msg}</div>}
+            <div style={{marginTop:22,display:'flex',gap:10}}>
+              <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>{submitting?'提交中...':'提交判断'}</button>
+              <button className="btn" onClick={handleClear}>清空</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══ REVIEW ═══
+    function ReviewPage() {
+      const [dueJudgments, setDueJudgments] = useState([
+        {target:'贵州茅台',direction:'看涨',confidence:75,verify_date:'2026-06-24'},
+        {target:'比亚迪',direction:'看涨',confidence:70,verify_date:'2026-06-23'},
+        {target:'中芯国际',direction:'看涨',confidence:85,verify_date:'2026-06-22'},
+      ]);
+      const [calibration, setCalibration] = useState({avg_brier:0.18,count:24});
+
+      useEffect(() => {
+        (async () => {
+          const [dueData, calData] = await Promise.all([
+            apiFetch('/api/judgments/due'),
+            apiFetch('/api/calibration/summary'),
+          ]);
+          if (dueData && dueData.length) setDueJudgments(dueData);
+          if (calData && calData.avg_brier !== undefined) setCalibration(calData);
+        })();
+      }, []);
+
+      return (
+        <div>
+          <div className="page-header">
+            <h2>复盘中心</h2>
+            <div className="page-header-actions"><button className="btn btn-primary">开始复盘</button></div>
+          </div>
+          <div className="card" style={{marginBottom:16}}>
+            <div className="card-header">
+              <span className="card-title">到期判断</span>
+              <span style={{fontSize:12,color:'var(--primary)',fontFamily:'var(--font-mono)',fontWeight:600}}>{dueJudgments.length} 条待复盘</span>
+            </div>
+            <table className="data-table">
+              <thead><tr><th>标的</th><th>方向</th><th>置信度</th><th>到期日</th><th>操作</th></tr></thead>
+              <tbody>
+                {dueJudgments.map((j, i) => (
+                  <tr key={i}>
+                    <td style={{color:'var(--text)',fontWeight:600}}>{j.target}</td>
+                    <td><span className={`tag ${j.direction==='看跌'?'tag-down':'tag-up'}`}>{j.direction}</span></td>
+                    <td className="mono">{j.confidence}%</td>
+                    <td className="mono">{j.verify_date}</td>
+                    <td><button className="btn" style={{padding:'4px 10px',fontSize:11}}>复盘</button></td>
+                  </tr>
+                ))}
+                {dueJudgments.length === 0 && <tr><td colSpan="5" style={{textAlign:'center',color:'var(--muted)'}}>暂无到期判断</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <div className="grid-2">
+            <div className="card">
+              <div className="card-header"><span className="card-title">Brier Score 趋势</span></div>
+              <div className="chart-container"><BrierChart /></div>
+            </div>
+            <div className="card">
+              <div className="card-header"><span className="card-title">AI 复盘总结</span></div>
+              <div style={{padding:'12px 0',fontSize:13,color:'var(--text-secondary)',lineHeight:1.8}}>
+                <p style={{marginBottom:12}}>当前 Brier Score: <strong style={{color:'var(--primary)'}}>{calibration.avg_brier ?? '—'}</strong>（共 {calibration.count ?? 0} 条已校准判断）</p>
+                <ul style={{paddingLeft:16}}>
+                  <li style={{marginBottom:6}}>对科技股方向判断准确率高（80%），但置信度偏高 → 轻微过度自信</li>
+                  <li style={{marginBottom:6}}>消费类标的判断准确但时间窗口常偏早 → 建议拉长 horizon</li>
+                  <li>高置信度（80%+）判断的实际命中率为78% → 基本匹配，继续保持</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function BrierChart() {
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+      useEffect(() => {
+        if (!canvasRef.current) return;
+        if (chartRef.current) chartRef.current.destroy();
+        const ctx = canvasRef.current.getContext('2d');
+        chartRef.current = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['1月','2月','3月','4月','5月','6月'],
+            datasets: [{ data: [0.28,0.24,0.22,0.20,0.19,0.18], backgroundColor: ctx2 => { const v = ctx2.raw; return v <= 0.2 ? 'rgba(16,185,129,0.5)' : v <= 0.25 ? 'rgba(79,107,255,0.5)' : 'rgba(239,68,68,0.35)'; }, borderRadius: 5, barThickness: 30 }],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#8892A8', font: { size: 11 } } },
+              y: { min: 0, max: 0.4, grid: { color: 'rgba(99,130,255,0.06)' }, ticks: { color: '#8892A8', font: { size: 11, family: 'JetBrains Mono' } } },
+            },
+          },
+        });
+        return () => { if (chartRef.current) chartRef.current.destroy(); };
+      }, []);
+      return <canvas ref={canvasRef} />;
+    }
+
+    // ═══ PORTFOLIO ═══
+    function PortfolioPage() {
+      const [positions, setPositions] = useState([
+        {name:'贵州茅台',code:'600519',cost:1680,current_price:1935.2,weight_pct:28.5,pnl_pct:15.19,pnl_amount:55120},
+        {name:'宁德时代',code:'300750',cost:218.5,current_price:211.08,weight_pct:22.1,pnl_pct:-3.40,pnl_amount:-9650},
+        {name:'中芯国际',code:'688981',cost:52.3,current_price:56.86,weight_pct:18.3,pnl_pct:8.72,pnl_amount:20480},
+        {name:'比亚迪',code:'002594',cost:265,current_price:275.87,weight_pct:15.6,pnl_pct:4.10,pnl_amount:8220},
+        {name:'招商银行',code:'600036',cost:35.2,current_price:35.83,weight_pct:8.2,pnl_pct:1.79,pnl_amount:1880},
+      ]);
+      const [concentration, setConcentration] = useState({top_name:'茅台',top_pct:28.5});
+      const [totalPnl, setTotalPnl] = useState({value:0, pct:0});
+
+      useEffect(() => {
+        (async () => {
+          const pfData = await apiFetch('/api/portfolio');
+          if (pfData && pfData.positions && pfData.positions.length) {
+            setPositions(pfData.positions.map(p => ({
+              name: p.name || '',
+              code: p.code || '',
+              cost: p.cost || 0,
+              current_price: p.current_price || 0,
+              weight_pct: p.weight_pct || 0,
+              pnl_pct: p.pnl_pct || 0,
+              pnl_amount: p.pnl_amount || 0,
+            })));
+            if (pfData.concentration && pfData.concentration.length) {
+              const top = pfData.concentration[0];
+              setConcentration({top_name: top.name, top_pct: top.weight_pct});
+            }
+            setTotalPnl({value: pfData.total_pnl || 0, pct: pfData.total_pnl_pct || 0});
+          }
+        })();
+      }, []);
+
+      const fmtMoney = (v) => v >= 0 ? `+¥ ${v.toLocaleString()}` : `-¥ ${Math.abs(v).toLocaleString()}`;
+
+      return (
+        <div>
+          <div className="page-header">
+            <h2>持仓看板</h2>
+            <div className="page-header-actions"><button className="btn btn-primary">添加持仓</button></div>
+          </div>
+          <div className="card" style={{marginBottom:16}}>
+            <div className="card-header">
+              <span className="card-title">当前持仓</span>
+              {concentration.top_pct > 25 && <span style={{fontSize:11,color:'var(--warning)',fontWeight:600,background:'var(--warning-dim)',padding:'3px 8px',borderRadius:'var(--radius-sm)'}}>集中度预警: {concentration.top_name} {concentration.top_pct}%</span>}
+            </div>
+            <table className="data-table">
+              <thead><tr><th>标的</th><th>成本价</th><th>现价</th><th>仓位</th><th>盈亏</th><th>盈亏额</th></tr></thead>
+              <tbody>
+                {positions.map((p, i) => (
+                  <tr key={i}>
+                    <td style={{color:'var(--text)',fontWeight:600}}>{p.name} {p.code}</td>
+                    <td className="mono">{p.cost.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                    <td className="mono">{p.current_price.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                    <td className="mono" style={p.weight_pct>25?{color:'var(--warning)'}:{}}>{p.weight_pct}%</td>
+                    <td className={`mono ${p.pnl_pct>=0?'up':'down'}`}>{p.pnl_pct>=0?'+':''}{p.pnl_pct}%</td>
+                    <td className={`mono ${p.pnl_amount>=0?'up':'down'}`}>{fmtMoney(p.pnl_amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="card">
+            <div className="card-header"><span className="card-title">绩效归因 (判断 × 执行)</span></div>
+            <div className="attribution-grid">
+              <div className="attribution-cell"><div className="cell-label">判断对 + 执行对</div><div className="cell-value" style={{color:'var(--up)'}}>3</div></div>
+              <div className="attribution-cell"><div className="cell-label">判断对 + 执行差</div><div className="cell-value" style={{color:'var(--warning)'}}>1</div></div>
+              <div className="attribution-cell"><div className="cell-label">判断错 + 运气好</div><div className="cell-value" style={{color:'var(--primary)'}}>1</div></div>
+              <div className="attribution-cell"><div className="cell-label">一致亏损</div><div className="cell-value" style={{color:'var(--down)'}}>2</div></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══ CALIBRATION ═══
+    function CalibrationPage() {
+      const [summary, setSummary] = useState({avg_brier:0.18, count:24, accuracy:71});
+      const [biasByTarget, setBiasByTarget] = useState([
+        {target:'贵州茅台',count:8,accuracy:87.5,bias:'偏保守'},
+        {target:'宁德时代',count:6,accuracy:66.7,bias:'轻微过度自信'},
+        {target:'中芯国际',count:5,accuracy:40.0,bias:'严重过度自信'},
+        {target:'比亚迪',count:5,accuracy:80.0,bias:'良好'},
+      ]);
+
+      useEffect(() => {
+        (async () => {
+          const calData = await apiFetch('/api/calibration/summary');
+          if (calData) {
+            if (calData.avg_brier !== undefined) setSummary(prev => ({...prev, avg_brier: calData.avg_brier, count: calData.count || prev.count, accuracy: calData.accuracy || prev.accuracy}));
+            if (calData.bias_by_target && calData.bias_by_target.length) setBiasByTarget(calData.bias_by_target);
+          }
+        })();
+      }, []);
+
+      const biasColor = (b) => {
+        if (!b) return 'var(--muted)';
+        if (b.includes('严重')) return 'var(--down)';
+        if (b.includes('过度')) return 'var(--warning)';
+        return 'var(--up)';
+      };
+
+      return (
+        <div>
+          <div className="page-header">
+            <h2>校准报告</h2>
+            <span style={{fontSize:12,color:'var(--muted)',fontFamily:'var(--font-mono)'}}>2026年6月</span>
+          </div>
+          <div className="metrics-grid" style={{gridTemplateColumns:'repeat(3, 1fr)'}}>
+            <div className="metric-card">
+              <div className="metric-label">月度 Brier Score</div>
+              <div className="metric-value primary">{summary.avg_brier ?? '—'}</div>
+              <div className="metric-delta up">较上月 -0.01</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">过度自信检测</div>
+              <div className="metric-value" style={{fontSize:17,color:'var(--warning)'}}>轻微过度自信</div>
+              <div className="metric-delta" style={{color:'var(--warning)',background:'var(--warning-dim)',border:'1px solid rgba(245,158,11,0.2)'}}>80%+区间偏高</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">总判断数 / 准确率</div>
+              <div className="metric-value">{summary.count} <span style={{fontSize:14,color:'var(--muted)'}}>/</span> <span style={{color:'var(--up)'}}>{summary.accuracy}%</span></div>
+            </div>
+          </div>
+          <div className="grid-2">
+            <div className="card">
+              <div className="card-header"><span className="card-title">按标的偏差分析</span></div>
+              <table className="data-table">
+                <thead><tr><th>标的</th><th>判断数</th><th>准确率</th><th>偏差</th></tr></thead>
+                <tbody>
+                  {biasByTarget.map((item, i) => (
+                    <tr key={i}>
+                      <td style={{color:'var(--text)',fontWeight:600}}>{item.target}</td>
+                      <td className="mono">{item.count}</td>
+                      <td className={`mono ${item.accuracy>=70?'up':item.accuracy<50?'down':''}`}>{item.accuracy}%</td>
+                      <td className="mono" style={{color:biasColor(item.bias)}}>{item.bias}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="card">
+              <div className="card-header"><span className="card-title">改进建议</span></div>
+              <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.8}}>
+                <div style={{padding:'12px 14px',background:'var(--down-dim)',borderRadius:'var(--radius-md)',marginBottom:10,borderLeft:'3px solid var(--down)'}}>
+                  <strong style={{color:'var(--text)'}}>中芯国际</strong>：5次判断仅2次正确（40%），但平均置信度72%。建议降低该标的置信度或增加分析深度。
+                </div>
+                <div style={{padding:'12px 14px',background:'var(--warning-dim)',borderRadius:'var(--radius-md)',marginBottom:10,borderLeft:'3px solid var(--warning)'}}>
+                  <strong style={{color:'var(--text)'}}>时间窗口</strong>：1周窗口判断准确率（58%）显著低于1月窗口（79%）。考虑减少短期判断或调低其置信度。
+                </div>
+                <div style={{padding:'12px 14px',background:'var(--up-dim)',borderRadius:'var(--radius-md)',borderLeft:'3px solid var(--up)'}}>
+                  <strong style={{color:'var(--text)'}}>茅台+比亚迪</strong>：准确率高且校准良好，这两个标的是你的优势圈。
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══ APP ═══
+    function App() {
+      const [activePage, setActivePage] = useState('dashboard');
+      const renderPage = () => {
+        switch(activePage) {
+          case 'dashboard': return <DashboardPage />;
+          case 'research': return <ResearchPage />;
+          case 'news': return <NewsPage />;
+          case 'record': return <RecordPage />;
+          case 'review': return <ReviewPage />;
+          case 'portfolio': return <PortfolioPage />;
+          case 'calibration': return <CalibrationPage />;
+          default: return <DashboardPage />;
+        }
+      };
+      return (
+        <>
+          <Sidebar activePage={activePage} onNavigate={setActivePage} />
+          <main className="main-content">{renderPage()}</main>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
