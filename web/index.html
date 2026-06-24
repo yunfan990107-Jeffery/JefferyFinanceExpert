@@ -754,21 +754,22 @@
         ]);
         if (idxData && idxData.length) setIndices(idxData);
         if (newsData && newsData.length) setNews(newsData);
-        if (pfData && pfData.positions) {
-          setPf(pfData);
-          const top = pfData.positions[0];
-          if (top && top.code) {
-            const kData = await apiFetch('/api/stock/kline/' + top.code + '?days=60');
-            if (kData && kData.length) setKlineData({code: top.code, name: top.name, data: kData});
-          }
-        }
+        if (pfData && pfData.positions && pfData.positions.length > 0) setPf(pfData);
         setLastUpdate(new Date().toLocaleString('zh-CN',{hour12:false}));
         setLoading(false);
       }, []);
 
+      // 单独拉 K 线（API 或 mock 数据都拉）
       useEffect(() => { refresh(); }, []);
-
-      useEffect(() => { refresh(); }, []);
+      useEffect(() => {
+        const top = pf.positions?.[0];
+        if (top && top.code) {
+          (async () => {
+            const kData = await apiFetch('/api/stock/kline/' + top.code + '?days=60');
+            if (kData && kData.length) setKlineData({code: top.code, name: top.name, data: kData});
+          })();
+        }
+      }, [pf.total_value]); // total_value 变化时重新拉
 
       return (
         <div>
