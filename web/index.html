@@ -974,85 +974,119 @@
     function ResearchPage() {
       const [query, setQuery] = useState('');
       const [loading, setLoading] = useState(false);
-      const [fundamentals, setFundamentals] = useState({pe:25.4,pb:6.2,revenue_growth:18.3,profit_growth:12.7,roe:28.6,dividend_yield:1.8});
-      const [technicals, setTechnicals] = useState({ma5:1856,ma20:1823,ma60:1790,macd:'金叉 (DIF: 12.3)',kdj:'超买 (K:82)',volume_change:35,volatility:18.5,support:1780,resistance:1900});
-      const [report, setReport] = useState({editor:'白酒龙头基本面扎实，当前估值处于历史中位偏低。短期技术面偏多，但KDJ超买需注意回调风险。建议逢低布局。',bear:'消费降级趋势明显，高端白酒需求可能见顶。批价体系有松动迹象，需密切关注经销商库存周期。',risk:'单只仓位已28.5%，超集中度阈值。若继续加仓需同步对冲或设定严格止损位。政策面关注消费税改革。'});
+      const [stockInfo, setStockInfo] = useState(null);
       const [klineData, setKlineData] = useState(null);
+      const [kPeriod, setKPeriod] = useState('日线');
+      const [indicators, setIndicators] = useState(null);
+      const [report, setReport] = useState(null);
 
       const doResearch = useCallback(async () => {
         if (!query.trim()) return;
         setLoading(true);
-        const [fundData, researchData, kData] = await Promise.all([
-          apiFetch('/api/stock/fundamentals/' + query.trim()),
-          apiFetch('/api/research/' + query.trim()),
-          apiFetch('/api/stock/kline/' + query.trim()),
+        const code = query.trim();
+        const [kData, fundData] = await Promise.all([
+          apiFetch('/api/stock/kline/' + code + '?days=180'),
+          apiFetch('/api/stock/fundamentals/' + code),
         ]);
-        if (fundData) setFundamentals(prev => ({...prev, ...fundData}));
-        if (researchData) {
-          if (researchData.technicals) setTechnicals(prev => ({...prev, ...researchData.technicals}));
-          if (researchData.report) setReport(prev => ({...prev, ...researchData.report}));
+        if (kData && kData.length) {
+          setKlineData(kData);
+          // 计算技术指标 (client-side from kline)
+          const closes = kData.map(d => d.close);
+          const ma5 = closes.slice(-5).reduce((a,b)=>a+b,0)/5;
+          const ma20 = closes.slice(-20).reduce((a,b)=>a+b,0)/20;
+          const macd = closes.slice(-12).reduce((a,b)=>a+b,0)/12 - closes.slice(-26).reduce((a,b)=>a+b,0)/26;
+          setIndicators({ma5:ma5.toFixed(2), ma20:ma20.toFixed(2), macd:macd.toFixed(2)});
         }
-        if (kData) setKlineData(kData);
+        if (fundData) setStockInfo(fundData);
         setLoading(false);
       }, [query]);
+
+      // 按周期过滤 K 线
+      const periodDays = { '日线': 180, '周线': 52, '月线': 24 };
+      const filteredKline = klineData ? klineData.slice(-periodDays[kPeriod]) : null;
 
       return (
         <div>
           <div className="page-header"><h2>个股分析</h2></div>
-          <div style={{marginBottom:24,display:'flex',gap:10}}>
-            <input className="form-input" placeholder="输入股票代码，如 600519" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doResearch()} style={{maxWidth:480}} />
-            <button className="btn btn-primary" onClick={doResearch} disabled={loading}>{loading?'分析中...':'开始分析'}</button>
+
+          {/* ── 搜索 + 概览 ── */}
+          <div className="card" style={{marginBottom:14,padding:'14px 20px',display:'flex',alignItems:'center',gap:16}}>
+            <input className="form-input" placeholder="输入代码 如 600519" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doResearch()} style={{maxWidth:200}} />
+            <button className="btn btn-primary" onClick={doResearch} disabled={loading}>{loading?'搜索中...':'搜索'}</button>
+            {stockInfo && (
+              <div style={{display:'flex',gap:20,alignItems:'center',marginLeft:'auto'}}>
+                <span style={{fontSize:16,fontWeight:700,color:'var(--text)'}}>{stockInfo.name||query}</span>
+                <span style={{fontSize:20,fontFamily:'var(--font-mono)',fontWeight:700,color:stockInfo.price_change>=0?'var(--up)':'var(--down)'}}>{stockInfo.price||'--'}</span>
+                <span style={{fontSize:12,color:'var(--muted)'}}>PE {stockInfo.pe||'--'}</span>
+                <span style={{fontSize:12,color:'var(--muted)'}}>PB {stockInfo.pb||'--'}</span>
+              </div>
+            )}
           </div>
 
-          <div className="grid-2">
-            <div className="card">
-              <div className="card-header"><span className="card-title">基本面</span></div>
-              <table className="data-table"><tbody>
-                <tr><td>市盈率 PE(TTM)</td><td className="mono">{fundamentals.pe}x</td></tr>
-                <tr><td>市净率 PB</td><td className="mono">{fundamentals.pb}x</td></tr>
-                <tr><td>营收增速 YoY</td><td className={`mono ${fundamentals.revenue_growth>=0?'up':'down'}`}>{fundamentals.revenue_growth>=0?'+':''}{fundamentals.revenue_growth}%</td></tr>
-                <tr><td>净利润增速</td><td className={`mono ${fundamentals.profit_growth>=0?'up':'down'}`}>{fundamentals.profit_growth>=0?'+':''}{fundamentals.profit_growth}%</td></tr>
-                <tr><td>ROE</td><td className="mono">{fundamentals.roe}%</td></tr>
-                <tr><td>股息率</td><td className="mono">{fundamentals.dividend_yield}%</td></tr>
-              </tbody></table>
+          {/* ── K线图 + 周期选择 ── */}
+          <div className="card" style={{marginBottom:14,padding:'12px 20px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              <span className="card-title" style={{margin:0}}>K线图</span>
+              <div style={{display:'flex',gap:4}}>
+                {['日线','周线','月线'].map(p => (
+                  <button key={p} onClick={()=>setKPeriod(p)}
+                    style={{padding:'4px 12px',borderRadius:4,border:'1px solid '+(p===kPeriod?'var(--primary)':'var(--border)'),background:p===kPeriod?'var(--primary-dim)':'transparent',color:p===kPeriod?'var(--primary)':'var(--muted)',fontSize:11,cursor:'pointer'}}>
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="card">
-              <div className="card-header"><span className="card-title">技术指标</span></div>
-              <table className="data-table"><tbody>
-                <tr><td>MA5 / MA20 / MA60</td><td className="mono">{technicals.ma5} / {technicals.ma20} / {technicals.ma60}</td></tr>
-                <tr><td>MACD</td><td className="mono up">{technicals.macd}</td></tr>
-                <tr><td>KDJ</td><td className="mono" style={{color:'var(--warning)'}}>{technicals.kdj}</td></tr>
-                <tr><td>成交量</td><td className="mono">放量 (+{technicals.volume_change}%)</td></tr>
-                <tr><td>60日波动率</td><td className="mono">{technicals.volatility}%</td></tr>
-                <tr><td>支撑/压力</td><td className="mono">{technicals.support} / {technicals.resistance}</td></tr>
-              </tbody></table>
+            <div style={{height:260}}>
+              {filteredKline ? <KlineChart data={filteredKline} /> : (
+                <div style={{height:'100%',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted)'}}>输入代码搜索，加载K线图</div>
+              )}
             </div>
+            {indicators && (
+              <div style={{display:'flex',gap:20,marginTop:8,fontSize:12,fontFamily:'var(--font-mono)'}}>
+                <span style={{color:'var(--muted)'}}>MA5 <span style={{color:'var(--text)'}}>{indicators.ma5}</span></span>
+                <span style={{color:'var(--muted)'}}>MA20 <span style={{color:'var(--text)'}}>{indicators.ma20}</span></span>
+                <span style={{color:'var(--muted)'}}>MACD <span style={{color:indicators.macd>=0?'var(--up)':'var(--down)'}}>{indicators.macd}</span></span>
+              </div>
+            )}
           </div>
 
-          <div className="card" style={{marginBottom:16}}>
+          {/* ── AI 深度研究 ── */}
+          <div className="card" style={{padding:'14px 20px'}}>
             <div className="card-header">
-              <span className="card-title">AI 研究报告</span>
-              <span style={{fontSize:11,color:'var(--muted)',fontFamily:'var(--font-mono)'}}>Multi-Agent · DeepSeek</span>
+              <span className="card-title">AI 深度研究</span>
+              <span style={{fontSize:11,color:'var(--muted)'}}>Multi-Agent · DeepSeek</span>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginTop:8}}>
-              <div style={{padding:16,background:'var(--primary-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(79,107,255,0.12)'}}>
-                <div style={{fontSize:11,color:'var(--primary)',fontWeight:700,marginBottom:8}}>总编观点</div>
-                <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.editor}</div>
+            {!report ? (
+              <div style={{padding:'24px 0',textAlign:'center',color:'var(--muted)'}}>
+                <p>先输入代码加载数据，再启动 AI 深度研究</p>
+                <button className="btn btn-primary" style={{marginTop:8}} onClick={()=>{
+                  if(!query.trim()) return;
+                  setLoading(true);
+                  apiFetch('/api/research/'+query.trim()).then(r=>{
+                    if(r) setReport(r);
+                    setLoading(false);
+                  });
+                }} disabled={loading || !query.trim()}>
+                  {loading ? '分析中...' : '启动 AI 五步研究'}
+                </button>
+                <div style={{fontSize:11,color:'var(--muted)',marginTop:8}}>数据采集 → 研究草稿 → 技术分析 → 反方观点 → 风控 → 汇总</div>
               </div>
-              <div style={{padding:16,background:'var(--warning-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(245,158,11,0.2)'}}>
-                <div style={{fontSize:11,color:'var(--down)',fontWeight:700,marginBottom:8}}>反方观点</div>
-                <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.bear}</div>
+            ) : (
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginTop:8}}>
+                <div style={{padding:14,background:'var(--primary-dim)',borderRadius:8,border:'1px solid rgba(79,107,255,0.12)'}}>
+                  <div style={{fontSize:11,color:'var(--primary)',fontWeight:700,marginBottom:6}}>总编观点</div>
+                  <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.editor||'正在生成...'}</div>
+                </div>
+                <div style={{padding:14,background:'rgba(239,68,68,0.06)',borderRadius:8,border:'1px solid rgba(239,68,68,0.15)'}}>
+                  <div style={{fontSize:11,color:'var(--down)',fontWeight:700,marginBottom:6}}>反方观点</div>
+                  <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.bear||'正在生成...'}</div>
+                </div>
+                <div style={{padding:14,background:'rgba(245,158,11,0.06)',borderRadius:8,border:'1px solid rgba(245,158,11,0.15)'}}>
+                  <div style={{fontSize:11,color:'var(--warning)',fontWeight:700,marginBottom:6}}>风控提示</div>
+                  <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.risk||'正在生成...'}</div>
+                </div>
               </div>
-              <div style={{padding:16,background:'var(--warning-dim)',borderRadius:'var(--radius-md)',border:'1px solid rgba(245,158,11,0.2)'}}>
-                <div style={{fontSize:11,color:'var(--warning)',fontWeight:700,marginBottom:8}}>风控提示</div>
-                <div style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.7}}>{report.risk}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header"><span className="card-title">K线图 · 60日</span></div>
-            <div className="chart-container" style={{height:240}}><PriceChart data={klineData} /></div>
+            )}
           </div>
         </div>
       );
