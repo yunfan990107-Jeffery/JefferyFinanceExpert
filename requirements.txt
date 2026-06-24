@@ -7,3 +7,7 @@ requests>=2.31
 # P1 起用（行情数据）
 akshare>=1.13
 baostock>=0.9
+
+# API 层（Web 前端）
+fastapi>=0.110
+uvicorn[standard]>=0.27

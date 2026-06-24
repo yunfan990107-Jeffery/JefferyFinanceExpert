@@ -70,39 +70,47 @@ def _to_plain_code(bs_code: str) -> str:
 
 
 def download_one(bs_code: str) -> int:
-    """下载单只股票全量日线，写入 SQLite。返回写入条数。"""
+    """下载单只股票全量日线（分年批次），写入 SQLite。返回写入条数。"""
     import baostock as bs
+    total_rows = 0
+    year_start = 1990
+    year_end = 2027
+
     try:
         bs.login()
-        rs = bs.query_history_k_data_plus(
-            bs_code,
-            "date,open,high,low,close,volume,amount,pctChg,turn",
-            start_date="1990-01-01",
-            end_date="2030-12-31",
-            frequency="d",
-            adjustflag="2",  # 前复权
-        )
-        rows = []
-        while (rs.error_code == '0') & rs.next():
-            rows.append(rs.get_row_data())
+        for y in range(year_start, year_end):
+            start = f"{y}-01-01"
+            end = f"{y}-12-31"
+            try:
+                rs = bs.query_history_k_data_plus(
+                    bs_code,
+                    "date,open,high,low,close,volume,amount,pctChg,turn",
+                    start_date=start, end_date=end,
+                    frequency="d", adjustflag="2",
+                )
+                if rs.error_code != '0':
+                    continue
+                rows = []
+                while rs.next():
+                    rows.append(rs.get_row_data())
+                if rows:
+                    plain_code = _to_plain_code(bs_code)
+                    conn = sqlite3.connect(str(DB_PATH))
+                    conn.execute("BEGIN")
+                    for r in rows:
+                        conn.execute(
+                            "INSERT OR REPLACE INTO daily_k VALUES (?,?,?,?,?,?,?,?,?,?)",
+                            [plain_code] + r,
+                        )
+                    conn.commit()
+                    conn.close()
+                    total_rows += len(rows)
+            except Exception:
+                continue  # 单年失败不阻塞
         bs.logout()
-
-        if not rows:
-            return 0
-
-        plain_code = _to_plain_code(bs_code)
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.execute("BEGIN")
-        for r in rows:
-            conn.execute(
-                "INSERT OR REPLACE INTO daily_k VALUES (?,?,?,?,?,?,?,?,?,?)",
-                [plain_code] + r,
-            )
-        conn.commit()
-        conn.close()
-        return len(rows)
-    except Exception as e:
-        return -1  # 标记失败
+        return total_rows
+    except Exception:
+        return -1
 
 
 def build(codes: list[str], workers: int = 8):
