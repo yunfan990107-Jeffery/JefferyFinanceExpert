@@ -61,18 +61,15 @@ cache/      本地行情缓存（gitignore）
 
 ### Git 远程
 
-> ⚠️ **必须用 SSH，不能用 HTTPS。** 本机网络环境下 443 端口连不上 GitHub，只有 SSH 22 端口能通。
-
 ```
-git@github.com:yunfan990107-Jeffery/JefferyFinanceExpert.git
+https://github.com/yunfan990107-Jeffery/JefferyFinanceExpert.git
 ```
 
-SSH 密钥：`~/.ssh/id_ed25519`（已添加至 GitHub）。
-
-如果 push 失败，检查：
-1. VPN 是否开启且节点支持 SSH（22 端口）
-2. `git remote -v` 确认是 `git@github.com:...` 而非 `https://...`
-3. `~/.ssh/id_ed25519` 密钥是否存在
+> 如果 HTTPS 连不上（部分网络 443 端口被墙），切到 SSH：
+> ```
+> git remote set-url origin git@github.com:yunfan990107-Jeffery/JefferyFinanceExpert.git
+> ```
+> SSH 密钥：`~/.ssh/id_ed25519`（已添加至 GitHub）。
 
 ---
 
