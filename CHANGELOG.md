@@ -5,6 +5,41 @@
 
 ---
 
+## [2026-06-25] Git 远程切换为 SSH + 环境信息
+
+### 背景
+
+本机网络环境下 HTTPS 443 端口无法连接 GitHub（无论是否开 VPN，部分 VPN 节点分流规则不覆盖 443）。经测试 SSH 22 端口在部分 VPN 节点可用。
+
+### 操作
+
+1. 生成 ED25519 SSH 密钥对：`~/.ssh/id_ed25519`
+2. 公钥已添加至 GitHub Settings → SSH Keys
+3. **remote 已切换为 SSH**：`git@github.com:yunfan990107-Jeffery/JefferyFinanceExpert.git`
+
+### 重要提醒
+
+> ⚠️ **不要将 remote 改回 HTTPS**，否则无法 push。
+> 如果 `git push` 失败，检查：
+> 1. VPN 是否开启且节点支持 SSH（22 端口）
+> 2. `~/.ssh/id_ed25519` 是否存在
+> 3. `git remote -v` 确认是 `git@github.com:...` 而非 `https://...`
+
+### 本机环境
+
+| 项 | 值 |
+|---|---|
+| OS | Windows 11 x64 |
+| Shell | Git Bash (MSYS2) |
+| Python | 3.13.13 (Miniconda3, 路径 `C:\Users\Jeffery\miniconda3\`) |
+| 虚拟环境 | `.venv`（项目根目录） |
+| Node | 通过 npx 可用 |
+| SSH 密钥 | `~/.ssh/id_ed25519` (ED25519) |
+| Git remote | `git@github.com:yunfan990107-Jeffery/JefferyFinanceExpert.git` (SSH) |
+| 通达信服务器 | `218.75.126.9:7709` (pytdx 默认) |
+
+---
+
 ## [2026-06-25] K 线数据源切换：Baostock → 通达信 pytdx
 
 ### 背景
