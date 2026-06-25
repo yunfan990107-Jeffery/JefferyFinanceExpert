@@ -1217,7 +1217,7 @@
             const bodyH = Math.max(1, Math.abs(y.getPixelForValue(d.close) - y.getPixelForValue(d.open)));
             ctx.fillStyle = color;
             ctx.fillRect(xPos - barWidth / 2, Math.min(y.getPixelForValue(d.open), y.getPixelForValue(d.close)), barWidth, bodyH);
-          });
+          }
         },
       }), [data, indices]);
 
