@@ -299,6 +299,35 @@ def stock_kline(code: str, days: int = 60):
     return {"data": result}
 
 
+@app.get("/api/market/indices")
+def market_indices():
+    """获取主要指数行情。"""
+    import sqlite3
+    from pathlib import Path
+    db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
+    conn = sqlite3.connect(str(db))
+    codes = ["000001","399001","399006","000688","000300","000016"]
+    names = {"000001":"上证指数","399001":"深证成指","399006":"创业板指","000688":"科创50","000300":"沪深300","000016":"上证50"}
+    market_map = {"000001":"A股","399001":"A股","399006":"A股","000688":"A股","000300":"A股","000016":"A股"}
+    result = []
+    for code in codes:
+        row = conn.execute(
+            "SELECT close, date FROM daily_k WHERE code=? ORDER BY date DESC LIMIT 2",
+            (code,),
+        ).fetchall()
+        if row and len(row) >= 1:
+            latest = row[0]
+            prev = row[1] if len(row) > 1 else latest
+            change_pct = round((latest[0] - prev[0]) / prev[0] * 100, 2) if prev[0] else 0
+            result.append({
+                "name": names.get(code, code), "code": code,
+                "price": round(latest[0], 2), "change_pct": change_pct,
+                "market": market_map.get(code, ""),
+            })
+    conn.close()
+    return {"data": result}
+
+
 @app.get("/api/stock/fundamentals/{code}")
 def stock_fundamentals(code: str):
     """获取个股基本面。"""
