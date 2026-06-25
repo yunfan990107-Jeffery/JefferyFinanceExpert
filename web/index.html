@@ -11,6 +11,7 @@
   <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <style>
     :root {
       --bg: #F0F3F8;
@@ -866,6 +867,14 @@
 
       useEffect(() => { refresh(); }, []);
 
+      // 点击外部关闭下拉
+      const searchRef = useRef(null);
+      useEffect(() => {
+        const handler = (e) => { if (searchRef.current && !searchRef.current.contains(e.target)) setSuggestions([]); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+      }, []);
+
       // 当前选中指数的 K 线
       useEffect(() => {
         const idx = visibleIndices[selectedIndex];
@@ -1096,7 +1105,7 @@
                 onChange={e=>{setQuery(e.target.value);searchStocks(e.target.value);}}
                 onKeyDown={e=>e.key==='Enter'&&doResearch()}
                 style={{width:'100%',boxSizing:'border-box'}}
-                onBlur={()=>setTimeout(()=>setSuggestions([]),200)} />
+                 />
               {suggestions.length > 0 && (
                 <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:99,
                   background:'var(--elevated)',border:'1px solid var(--border)',borderRadius:'0 0 6px 6px',maxHeight:240,overflow:'auto'}}>
@@ -1377,13 +1386,19 @@
         const ctx = canvasRef.current.getContext('2d');
         const yMin = Math.min(...data.map(d => d.low)) * 0.995;
         const yMax = Math.max(...data.map(d => d.high)) * 1.005;
+        const zoomPlugin = {
+    zoom: {
+      pan: { enabled: true, mode: 'x', modifierKey: null },
+      zoom: { wheel: { enabled: true, modifierKey: null }, pinch: { enabled: true }, mode: 'x' },
+    },
+  };
         const plugins = [candlePlugin, maPlugin, volumePlugin, subPlugin];
         chartRef.current = new Chart(ctx, {
           type: 'line',
           data: { labels: indices, datasets: [{ data: closes, borderColor: 'transparent', pointRadius: 0 }] },
           options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false },
+            plugins: { legend: { display: false }, zoom: zoomPlugin.zoom,
               tooltip: {
                 callbacks: {
                   title: ctx => data[ctx[0].dataIndex]?.date || '',
