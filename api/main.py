@@ -278,17 +278,33 @@ def stock_kline(code: str, days: int = 60):
 
 @app.get("/api/market/indices")
 def market_indices():
-    """获取主要指数行情。TDX 指数代码映射有误，暂用 mock 兜底。"""
-    mock = [
-        {"name":"上证指数","code":"000001","price":3284.56,"change_pct":0.85,"market":"A股"},
-        {"name":"深证成指","code":"399001","price":10892.31,"change_pct":1.12,"market":"A股"},
-        {"name":"创业板指","code":"399006","price":2187.45,"change_pct":-0.23,"market":"A股"},
-        {"name":"科创50","code":"000688","price":1123.78,"change_pct":1.56,"market":"A股"},
-        {"name":"沪深300","code":"000300","price":3856.12,"change_pct":0.45,"market":"A股"},
-        {"name":"上证50","code":"000016","price":2689.34,"change_pct":-0.12,"market":"A股"},
-    ]
-    # TODO: 用 akshare stock_zh_index_daily_tx 或 Sina 获取真实指数数据
-    return {"data": mock}
+    """获取主要指数行情（从 daily_k 取最新 close）。"""
+    import sqlite3
+    from pathlib import Path
+    db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
+    conn = sqlite3.connect(str(db))
+    index_map = {
+        "000001": ("上证指数",  "A股", 3000, 5000),
+        "399001": ("深证成指",  "A股", 10000, 20000),
+        "399006": ("创业板指",  "A股", 2000, 5000),
+        "000688": ("科创50",   "A股", 1000, 3000),
+        "000300": ("沪深300",   "A股", 3000, 6000),
+        "000016": ("上证50",   "A股", 2000, 3500),
+    }
+    result = []
+    for code, (name, market, lo, hi) in index_map.items():
+        row = conn.execute(
+            "SELECT close, date FROM daily_k WHERE code=? ORDER BY date DESC LIMIT 2",
+            (code,),
+        ).fetchall()
+        if row and len(row) >= 2 and lo <= row[0][0] <= hi:
+            latest, prev = row[0][0], row[1][0]
+            pct = round((latest - prev) / prev * 100, 2)
+            result.append({"name": name, "code": code, "price": round(latest, 2), "change_pct": pct, "market": market})
+        elif row and lo <= row[0][0] <= hi:
+            result.append({"name": name, "code": code, "price": round(row[0][0], 2), "change_pct": 0, "market": market})
+    conn.close()
+    return {"data": result}
 
 
 @app.get("/api/stock/fundamentals/{code}")

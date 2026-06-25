@@ -195,6 +195,61 @@ def download_one(code: str, years: int = 0, server_ip: str = "") -> int:
         conn.close()
 
 
+# ── 指数 K 线 ──────────────────────────────────────────────────────
+
+def _build_indices(years: int = 0, server_ip: str = "") -> None:
+    """拉取主要指数 K 线（用 get_index_bars，与 get_security_bars 格式不同）。"""
+    from pytdx.hq import TdxHq_API
+    api = TdxHq_API()
+    ok = False
+    if server_ip:
+        ok = api.connect(server_ip, 7709, time_out=5)
+    else:
+        for ip, port in TDX_SERVERS:
+            try:
+                ok = api.connect(ip, port, time_out=5)
+                if ok:
+                    break
+            except Exception:
+                continue
+    if not ok:
+        print("  [指数] 通达信连接失败，跳过")
+        return
+
+    indices = [
+        ("000001", 1),   # 上证指数
+        ("399001", 0),   # 深证成指
+        ("399006", 0),   # 创业板指
+        ("000688", 1),   # 科创50
+        ("000300", 1),   # 沪深300
+        ("000016", 1),   # 上证50
+    ]
+    count = years * 260 if years > 0 else 8000
+    total = 0
+    conn = sqlite3.connect(str(DB_PATH))
+    for code, market in indices:
+        try:
+            bars = api.get_index_bars(9, market, code, 0, count)
+        except Exception:
+            continue
+        if not bars:
+            continue
+        valid = [b for b in bars if 2024 <= b["year"] <= 2027]
+        n = 0
+        for b in valid:
+            d = f"{b['year']}-{b['month']:02d}-{b['day']:02d}"
+            conn.execute(
+                "INSERT OR REPLACE INTO daily_k VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (code, d, float(b["open"]), float(b["high"]), float(b["low"]),
+                 float(b["close"]), float(b.get("vol", 0)), float(b.get("amount", 0)), None, None),
+            )
+            n += 1
+        conn.commit()
+        total += n
+    conn.close()
+    api.disconnect()
+    print(f"  指数 K 线: {total} 条")
+
 # ── 主流程 ────────────────────────────────────────────────────────
 
 def build(codes: list[str], workers: int = 8, years: int = 0, server_ip: str = ""):
@@ -243,6 +298,11 @@ def build(codes: list[str], workers: int = 8, years: int = 0, server_ip: str = "
     print(f"完成！{rows} 条 K 线，{failed} 只失败，总耗时 {elapsed / 60:.1f} 分钟")
     if DB_PATH.exists():
         print(f"数据库大小: {DB_PATH.stat().st_size / 1024 / 1024:.0f} MB")
+
+    # 指数 K 线（用 get_index_bars，格式略不同）
+    _build_indices(years, server_ip)
+    if DB_PATH.exists():
+        print(f"（含指数）数据库大小: {DB_PATH.stat().st_size / 1024 / 1024:.0f} MB")
 
 
 def main():
