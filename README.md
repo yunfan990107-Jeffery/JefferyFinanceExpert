@@ -5,11 +5,14 @@
 
 > **远程仓库**: https://github.com/yunfan990107-Jeffery/JefferyFinanceExpert
 > 克隆: `git clone https://github.com/yunfan990107-Jeffery/JefferyFinanceExpert.git`
-> 新 agent 如何上手见 [`docs/ONBOARDING.md`](docs/ONBOARDING.md)。
+> 新 agent 如何上手见 [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md)（**新 AI 先读这个！**），老版见 [`docs/ONBOARDING.md`](docs/ONBOARDING.md)。
 
 ## 文档索引（开发 agent 必读，按此顺序）
 | 文件 | 作用 |
 |---|---|
+| [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) | **新 AI 上下文速览**（当前状态+架构+已知问题） |
+| [`docs/CHANGELOG.md`](CHANGELOG.md) | 面向 AI 的详细变更日志 |
+| [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | 新 agent 冷启动流程 |
 | [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | 新 agent 冷启动流程（先读） |
 | [`docs/DEV_AGENT_SYSTEM_PROMPT.md`](docs/DEV_AGENT_SYSTEM_PROMPT.md) | 开发 agent 的 system prompt |
 | [`docs/README.md`](docs/README.md) | 开发约定 + `core/` 接口契约 |

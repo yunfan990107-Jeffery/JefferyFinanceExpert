@@ -5,6 +5,42 @@
 
 ---
 
+## [2026-06-25] K 线图表重构 + 会话总结
+
+### 本次会话完成
+
+- **环境搭建**：安装 Miniconda3 Python 3.13 + venv + 全部依赖
+- **K 线数据源**：Baostock → pytdx 通达信 TCP 直连，`build_kline_db.py` 重写
+- **数据目录**：`cache/` → `data/`，相关文件全部更新
+- **概念板块系统**：新增 `build_concept_db.py` + 4 个 API 端点 + 3 张 SQLite 表
+- **K 线图表**：React SPA 多图层架构（candle/MA/volume/MACD/KDJ）
+- **Git SSH**：生成 ED25519 密钥，remote 切换为 SSH
+- **新 AI 上手指南**：`docs/AI_CONTEXT.md`
+- **code-simplifier 审查**：`build_concept_db.py` 多项重构优化
+- **测试**：50 passed, 7 skipped
+
+### 未解决问题（待下次继续）
+
+1. **K 线图间距不均**：Chart.js category scale 按日期当标签，周末留空 → 改线性索引
+2. **K 线图无缩放/平移**：用户要求滚轮缩放 + 拖拽平移，方案 C（Lightweight Charts）已推荐，待确认
+3. **概念成分股偏少**：每只股票平均 2.2 个概念，10jqka 分页限制待排查
+
+### 下次启动命令
+
+```bash
+source .venv/Scripts/activate
+python scripts/build_kline_db.py --years 1 --workers 4  # 增量更新 K 线
+python scripts/build_concept_db.py --years 1             # 增量更新概念
+python -m uvicorn api.main:app --port 8000               # 后端
+npx serve web -l 3000 --no-clipboard                     # 前端
+```
+
+---
+
+## [2026-06-25] K 线图表重构 + 会话总结（旧）
+
+---
+
 ## [2026-06-25] 概念板块数据库 + API
 
 ### 背景
