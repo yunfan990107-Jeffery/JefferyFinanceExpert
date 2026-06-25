@@ -1,16 +1,16 @@
-# P0 核心
-streamlit>=1.36
+# 核心
 pandas>=2.0
 python-dotenv>=1.0
 requests>=2.31
+beautifulsoup4>=4.9
 
-# P1 起用（行情数据）
+# 行情数据
 akshare>=1.13
 baostock>=0.9
 
-# 通达信行情（直连 TCP，不依赖 HTTP 爬虫）
+# 通达信行情（直连 TCP）
 pytdx>=1.72
 
-# API 层（Web 前端）
+# API 层
 fastapi>=0.110
 uvicorn[standard]>=0.27

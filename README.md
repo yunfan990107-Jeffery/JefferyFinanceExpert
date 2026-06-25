@@ -21,23 +21,30 @@
 ## 平台分工
 - **飞书** = 云端数据库/系统记录源（判断、持仓、决策、研究、复盘）
 - **Git** = 纯代码库（本仓库），不放数据
-- **WebUI** = Streamlit 轻量界面（本仓库 `app/`），P0 三页
-- **本地数据** = K 线等可再生数据放 `data/`（不入 Git），通过 `scripts/build_kline_db.py` 生成
+- **WebUI** = React SPA（`web/index.html`，CDN 单文件，7 页）+ FastAPI 后端（`api/main.py`）
+- **本地数据** = K 线等可再生数据放 `data/`（不入 Git），通过 `scripts/build_*.py` 生成
 
 ## 技术栈
-Python 3.11+ · Streamlit · 飞书多维表格(Bitable, 经 lark API) · LLM(DeepSeek, OpenAI 兼容) · AkShare(P1) · SQLite(P1) · pandas
+Python 3.13+ · FastAPI · React 18 (CDN) · Chart.js 4.4 · 通达信 pytdx · 飞书多维表格 · LLM(DeepSeek) · pandas
 
 ## 快速开始
 ```bash
 python -m venv .venv && source .venv/Scripts/activate   # Windows Git Bash
 pip install -r requirements.txt
 cp .env.example .env        # 填入飞书 app_id/secret 与各表 token
-streamlit run app/main.py
+
+# 构建本地数据库（首次）
+python scripts/build_kline_db.py --years 2 --workers 4
+python scripts/build_concept_db.py --years 2
+
+# 启动后端 + 前端
+python -m uvicorn api.main:app --port 8000 &
+npx serve web -l 3000 --no-clipboard
 ```
 
 ## 目录
 ```
-app/        Streamlit 应用（main.py + pages/ 三页）
+web/        React SPA 前端（单文件 index.html）
 core/       业务逻辑模块（feishu_client / calibration / portfolio / llm_client / config）
 agents/     AI 角色提示词（quality_review.md）
 templates/  研究/风险/决策模板
