@@ -1069,7 +1069,19 @@
       const doResearch = useCallback(async () => {
         if (!query.trim()) return;
         setLoading(true);
-        const code = query.trim();
+        let code = query.trim();
+        // 中文名 → 代码解析
+        if (!/^\d/.test(code)) {
+          const res = await apiFetch('/api/stock/search?q=' + encodeURIComponent(code));
+          if (res && res.length) {
+            code = res[0].code.replace(/^(sh|sz|bj)/, '');
+          } else {
+            setError('未找到该股票');
+            setLoading(false);
+            return;
+          }
+        }
+        setError('');
         const [kData, fundData] = await Promise.all([
           apiFetch('/api/stock/kline/' + code + '?days=500'),
           apiFetch('/api/stock/fundamentals/' + code),
