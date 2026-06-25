@@ -1233,22 +1233,20 @@
           layout: { background: { color: 'transparent' }, textColor: '#8892A8' },
           grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
           crosshair: {
-            mode: 1,  // Normal: 十字线跟随鼠标
+            mode: 1,
             vertLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' },
             horzLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' },
           },
           rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)', autoScale: true, scaleMargins: { top: 0.05, bottom: 0.05 } },
           timeScale: {
             borderColor: 'rgba(99,130,255,0.15)', timeVisible: false,
-            barSpacing: 8,
-            minBarSpacing: 2,           // 最密：2px/根
-            rightOffset: 5,             // 右侧留白
-            fixLeftEdge: true,          // 禁止左移到数据之前
-            fixRightEdge: true,         // 禁止右移到数据之后
+            barSpacing: 8, minBarSpacing: 2, rightOffset: 5,
           },
           width: container.clientWidth,
           height: Math.round(height * 0.60),
         });
+        // 限制左右边界
+        mainChart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true });
 
         const candleSeries = mainChart.addCandlestickSeries({
           upColor: '#10B981', downColor: '#EF4444', borderUpColor: '#10B981', borderDownColor: '#EF4444',
@@ -1275,9 +1273,10 @@
           grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
           crosshair: { mode: 1, vertLine: { color: 'rgba(99,130,255,0.2)', style: 2 }, horzLine: { visible: false } },
           rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)', scaleMargins: { top: 0, bottom: 0 }, visible: false },
-          timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2, fixLeftEdge: true, fixRightEdge: true },
+          timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2 },
           handleScroll: false, handleScale: false,
         });
+        volChart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true });
         volChart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' }).setData(volumeData);
         // 同步时间轴
         mainChart.timeScale().subscribeVisibleTimeRangeChange(range => {
@@ -1295,9 +1294,10 @@
           grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
           crosshair: { mode: 1, vertLine: { color: 'rgba(99,130,255,0.2)', style: 2 }, horzLine: { visible: false } },
           rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)' },
-          timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2, fixLeftEdge: true, fixRightEdge: true },
+          timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2 },
           handleScroll: false, handleScale: false,
         });
+        subChart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true });
 
         // 同步时间轴
         mainChart.timeScale().subscribeVisibleTimeRangeChange(range => {
