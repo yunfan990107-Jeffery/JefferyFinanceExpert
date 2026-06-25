@@ -1386,19 +1386,17 @@
         const ctx = canvasRef.current.getContext('2d');
         const yMin = Math.min(...data.map(d => d.low)) * 0.995;
         const yMax = Math.max(...data.map(d => d.high)) * 1.005;
-        const zoomPlugin = {
-    zoom: {
-      pan: { enabled: true, mode: 'x', modifierKey: null },
-      zoom: { wheel: { enabled: true, modifierKey: null }, pinch: { enabled: true }, mode: 'x' },
-    },
-  };
+        const zoomConfig = {
+      pan: { enabled: true, mode: 'x' },
+      zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x', drag: { enabled: true, backgroundColor: 'rgba(79,107,255,0.1)', borderColor: 'rgba(79,107,255,0.3)' } },
+    };
         const plugins = [candlePlugin, maPlugin, volumePlugin, subPlugin];
         chartRef.current = new Chart(ctx, {
           type: 'line',
           data: { labels: indices, datasets: [{ data: closes, borderColor: 'transparent', pointRadius: 0 }] },
           options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, zoom: zoomPlugin.zoom,
+            plugins: { legend: { display: false }, zoom: zoomConfig,
               tooltip: {
                 callbacks: {
                   title: ctx => data[ctx[0].dataIndex]?.date || '',
