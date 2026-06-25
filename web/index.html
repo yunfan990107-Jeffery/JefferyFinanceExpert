@@ -1057,7 +1057,10 @@
         });
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, []);
-      return <canvas ref={canvasRef} />;
+      return <canvas ref={canvasRef}
+        onMouseDown={e => {
+          if (e.button === 1) { e.preventDefault(); /* middle button pan handled by zoom plugin */ }
+        }} />;
     }
 
     // ═══ RESEARCH ═══
@@ -1256,7 +1259,7 @@
         afterDraw(chart) {
           const { ctx, chartArea: { left, right }, scales: { x, y } } = chart;
           if (!data || !data.length) return;
-          const barWidth = Math.max(2, Math.min(8, (right - left) / data.length * 0.6));
+          const visa = range.last - range.first + 1; const barWidth = Math.max(2, Math.min(16, (right - left) / Math.max(visa, 1) * 0.75));
           data.forEach((d, i) => {
             const xPos = x.getPixelForValue(indices[i]);
             if (xPos < left || xPos > right) return;
@@ -1311,7 +1314,7 @@
           if (!data || !data.length) return;
           const volMax = Math.max(...data.map(d => d.volume || 0));
           const volHeight = 60, volBase = bottom + 30;
-          const barWidth = Math.max(1, Math.min(6, (right - left) / data.length * 0.5));
+          const barWidth = Math.max(1, Math.min(12, (right - left) / Math.max(visa, 1) * 0.6));
           const rangeV = getVisibleRange(chart, data.length);
           for (let i = rangeV.first; i <= rangeV.last; i++) {
             const d = data[i];
@@ -1353,7 +1356,7 @@
                 if (macd[i] == null) return;
                 const xPos = x.getPixelForValue(indices[i]);
                 if (xPos < left || xPos > right) return;
-                const bw = Math.max(1, (right - left) / data.length * 0.5);
+                const bw = Math.max(1, (right - left) / Math.max(rangeM.last - rangeM.first + 1, 1) * 0.6);
                 const y0 = yV(0), yM = yV(macd[i]);
                 ctx.fillStyle = macd[i] >= 0 ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)';
                 ctx.fillRect(xPos - bw / 2, Math.min(y0, yM), bw, Math.abs(yM - y0));
@@ -1432,7 +1435,10 @@
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, [data, indices, closes, candlePlugin, maPlugin, volumePlugin, subPlugin]);
 
-      return <canvas ref={canvasRef} />;
+      return <canvas ref={canvasRef}
+        onMouseDown={e => {
+          if (e.button === 1) { e.preventDefault(); /* middle button pan handled by zoom plugin */ }
+        }} />;
     }
 
     function PriceChart({ data }) {
@@ -1465,7 +1471,10 @@
         });
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, [labels, prices]);
-      return <canvas ref={canvasRef} />;
+      return <canvas ref={canvasRef}
+        onMouseDown={e => {
+          if (e.button === 1) { e.preventDefault(); /* middle button pan handled by zoom plugin */ }
+        }} />;
     }
 
     // ═══ NEWS ═══
@@ -1707,7 +1716,10 @@
         });
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, []);
-      return <canvas ref={canvasRef} />;
+      return <canvas ref={canvasRef}
+        onMouseDown={e => {
+          if (e.button === 1) { e.preventDefault(); /* middle button pan handled by zoom plugin */ }
+        }} />;
     }
 
     // ═══ PORTFOLIO ═══
