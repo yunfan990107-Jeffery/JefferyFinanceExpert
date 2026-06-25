@@ -641,16 +641,7 @@
 
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, useMemo } = React;
-
-  // 找到当前缩放级别下的可见蜡烛范围
-  function getVisibleRange(chart, dataLen) {
-    const { left, right } = chart.chartArea;
-    const { x } = chart.scales;
-    let first = 0, last = dataLen - 1;
-    for (let i = 0; i < dataLen; i++) { if (x.getPixelForValue(i) >= left) { first = i; break; } }
-    for (let i = dataLen - 1; i >= 0; i--) { if (x.getPixelForValue(i) <= right) { last = i; break; } }
-    return { first, last };
-  }
+    function getVisibleRange(chart, dataLen) { const { left, right } = chart.chartArea; const { x } = chart.scales; let first = 0, last = dataLen-1; for (let i=0;i<dataLen;i++){if(x.getPixelForValue(i)>=left){first=i;break;}} for (let i=dataLen-1;i>=0;i--){if(x.getPixelForValue(i)<=right){last=i;break;}} return {first,last}; }
 
     // ═══ 技术指标计算（纯函数） ═══
 
@@ -762,7 +753,7 @@
       navItems.forEach(item => {
         if (!sections[item.section]) sections[item.section] = [];
         sections[item.section].push(item);
-      }
+      });
 
       return (
         <aside className="sidebar">
@@ -876,14 +867,6 @@
       }, []);
 
       useEffect(() => { refresh(); }, []);
-
-      // 点击外部关闭下拉
-      const searchRef = useRef(null);
-      useEffect(() => {
-        const handler = (e) => { if (searchRef.current && !searchRef.current.contains(e.target)) setSuggestions([]); };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-      }, []);
 
       // 当前选中指数的 K 线
       useEffect(() => {
@@ -1057,10 +1040,7 @@
         });
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, []);
-      return <canvas ref={canvasRef}
-        onMouseDown={e => {
-          if (e.button === 1) { e.preventDefault(); /* middle button pan handled by zoom plugin */ }
-        }} />;
+      return <canvas ref={canvasRef} />;
     }
 
     // ═══ RESEARCH ═══
@@ -1072,10 +1052,14 @@
       const [kPeriod, setKPeriod] = useState('日线');
       const [subIndicator, setSubIndicator] = useState('macd');
       const [report, setReport] = useState(null);
-
       const [error, setError] = useState('');
       const [suggestions, setSuggestions] = useState([]);
-
+      const searchRef = useRef(null);
+      useEffect(() => {
+        const handler = (e) => { if (searchRef.current && !searchRef.current.contains(e.target)) setSuggestions([]); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+      }, []);
       const searchStocks = useCallback(async (q) => {
         if (q.length < 1) { setSuggestions([]); return; }
         const res = await apiFetch('/api/stock/search?q=' + encodeURIComponent(q));
@@ -1083,28 +1067,20 @@
         else setSuggestions([]);
       }, []);
 
-      const doResearchCode = useCallback(async (code) => {
-        if (!code) return;
-        setLoading(true); setError('');
-        const [kData, priceData] = await Promise.all([
-          apiFetch('/api/stock/kline/' + code + '?days=500'),
-          apiFetch('/api/stock/price/' + code),
-        ]);
-        if (kData && kData.length) { setKlineData(kData); setError(''); }
-        else { setKlineData(null); setError('未找到 K 线数据。请输入6位代码，如 600519。'); }
-        if (priceData) setStockInfo(priceData);
-        setLoading(false);
-      }, []);
-
-      const selectStock = (code) => { setQuery(code); setSuggestions([]); doResearchCode(code); };
-
       const doResearch = useCallback(async () => {
-        const q = query.trim(); if (!q) return;
-        // 优先用下拉选中的代码
-        const match = suggestions.find(s => s.name === q || s.code === q);
-        const code = match ? match.code : q;
-        setSuggestions([]); doResearchCode(code);
-      }, [query, doResearchCode, suggestions]);
+        if (!query.trim()) return;
+        setLoading(true);
+        const code = query.trim();
+        const [kData, fundData] = await Promise.all([
+          apiFetch('/api/stock/kline/' + code + '?days=500'),
+          apiFetch('/api/stock/fundamentals/' + code),
+        ]);
+        if (kData && kData.length) {
+          setKlineData(kData);
+        }
+        if (fundData) setStockInfo(fundData);
+        setLoading(false);
+      }, [query]);
 
       // 按周期过滤 K 线
       const periodDays = { '日线': 500, '周线': 104, '月线': 48 };
@@ -1116,44 +1092,8 @@
 
           {/* ── 搜索 + 概览 ── */}
           <div className="card" style={{marginBottom:14,padding:'14px 20px',display:'flex',alignItems:'center',gap:16}}>
-            <div style={{position:'relative',flex:1,minWidth:200,maxWidth:300}}>
-              <input className="form-input" placeholder="输入代码或名称 如 600519 茅台" value={query}
-                onChange={e=>{setQuery(e.target.value);searchStocks(e.target.value);}}
-                onKeyDown={e=>e.key==='Enter'&&doResearch()}
-                style={{width:'100%',boxSizing:'border-box'}}
-                 />
-              {suggestions.length > 0 && (
-                <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:99,
-                  background:'var(--elevated)',border:'1px solid var(--border)',borderRadius:'0 0 6px 6px',maxHeight:240,overflow:'auto'}}>
-                  {suggestions.map(s => (
-                    <div key={s.code} onMouseDown={()=>selectStock(s.code)}
-                      style={{padding:'8px 14px',cursor:'pointer',fontSize:13,
-                        borderBottom:'1px solid var(--border)',
-                        color:'var(--text)',display:'flex',justifyContent:'space-between'}}>
-                      <span>{s.name}</span>
-                      <span style={{color:'var(--muted)',fontSize:12,fontFamily:'var(--font-mono)'}}>{s.code}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {suggestions.length > 0 && (
-                <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:99,
-                  background:'var(--elevated)',border:'1px solid var(--border)',borderRadius:'0 0 6px 6px',maxHeight:240,overflow:'auto'}}>
-                  {suggestions.map(s => (
-                    <div key={s.code} onMouseDown={()=>selectStock(s.code)}
-                      style={{padding:'8px 14px',cursor:'pointer',fontSize:13,
-                        borderBottom:'1px solid var(--border)',
-                        color:'var(--text)',display:'flex',justifyContent:'space-between'}}>
-                      <span>{s.name}</span>
-                      <span style={{color:'var(--muted)',fontSize:12,fontFamily:'var(--font-mono)'}}>{s.code}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <input className="form-input" placeholder="输入代码 如 600519" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doResearch()} style={{maxWidth:200}} />
             <button className="btn btn-primary" onClick={doResearch} disabled={loading}>{loading?'搜索中...':'搜索'}</button>
-            {error && <span style={{fontSize:12,color:'var(--warning)'}}>{error}</span>}
-            {error && <span style={{fontSize:12,color:'var(--warning)'}}>{error}</span>}
             {stockInfo && (
               <div style={{display:'flex',gap:20,alignItems:'center',marginLeft:'auto'}}>
                 <span style={{fontSize:16,fontWeight:700,color:'var(--text)'}}>{stockInfo.name||query}</span>
@@ -1260,8 +1200,7 @@
           const { ctx, chartArea: { left, right }, scales: { x, y } } = chart;
           if (!data || !data.length) return;
           const range = getVisibleRange(chart, data.length);
-          const visa = range.last - range.first + 1;
-          const barWidth = Math.max(2, Math.min(16, (right - left) / Math.max(visa, 1) * 0.75));
+          const barWidth = Math.max(2, Math.min(18, (right - left) / Math.max(range.last-range.first+1,1) * 0.7));
           for (let i = range.first; i <= range.last; i++) {
             const d = data[i];
             const xPos = x.getPixelForValue(indices[i]);
@@ -1317,12 +1256,10 @@
           if (!data || !data.length) return;
           const volMax = Math.max(...data.map(d => d.volume || 0));
           const volHeight = 60, volBase = bottom + 30;
-          const barWidth = Math.max(1, Math.min(12, (right - left) / Math.max(visa, 1) * 0.6));
-          const rangeV = getVisibleRange(chart, data.length);
-          for (let i = rangeV.first; i <= rangeV.last; i++) {
-            const d = data[i];
+          const barWidth = Math.max(1, Math.min(6, (right - left) / data.length * 0.5));
+          data.forEach((d, i) => {
             const xPos = x.getPixelForValue(indices[i]);
-            if (xPos < left || xPos > right) continue;
+            if (xPos < left || xPos > right) return;
             const h = volMax > 0 ? ((d.volume || 0) / volMax) * volHeight : 0;
             const isUp = d.close >= d.open;
             ctx.fillStyle = isUp ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)';
@@ -1359,7 +1296,7 @@
                 if (macd[i] == null) return;
                 const xPos = x.getPixelForValue(indices[i]);
                 if (xPos < left || xPos > right) return;
-                const bw = Math.max(1, (right - left) / Math.max(rangeM.last - rangeM.first + 1, 1) * 0.6);
+                const bw = Math.max(1, (right - left) / data.length * 0.5);
                 const y0 = yV(0), yM = yV(macd[i]);
                 ctx.fillStyle = macd[i] >= 0 ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)';
                 ctx.fillRect(xPos - bw / 2, Math.min(y0, yM), bw, Math.abs(yM - y0));
@@ -1407,10 +1344,7 @@
         const ctx = canvasRef.current.getContext('2d');
         const yMin = Math.min(...data.map(d => d.low)) * 0.995;
         const yMax = Math.max(...data.map(d => d.high)) * 1.005;
-        const zoomConfig = {
-      pan: { enabled: true, mode: 'x' },
-      zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x', drag: { enabled: true, backgroundColor: 'rgba(79,107,255,0.1)', borderColor: 'rgba(79,107,255,0.3)' } },
-    };
+        const zoomConfig = { pan: { enabled: true, mode: "x" }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x", drag: { enabled: true } } };
         const plugins = [candlePlugin, maPlugin, volumePlugin, subPlugin];
         chartRef.current = new Chart(ctx, {
           type: 'line',
@@ -1438,10 +1372,7 @@
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, [data, indices, closes, candlePlugin, maPlugin, volumePlugin, subPlugin]);
 
-      return <canvas ref={canvasRef}
-        onMouseDown={e => {
-          if (e.button === 1) { e.preventDefault(); /* middle button pan handled by zoom plugin */ }
-        }} />;
+      return <canvas ref={canvasRef} />;
     }
 
     function PriceChart({ data }) {
@@ -1474,10 +1405,7 @@
         });
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, [labels, prices]);
-      return <canvas ref={canvasRef}
-        onMouseDown={e => {
-          if (e.button === 1) { e.preventDefault(); /* middle button pan handled by zoom plugin */ }
-        }} />;
+      return <canvas ref={canvasRef} />;
     }
 
     // ═══ NEWS ═══
@@ -1719,10 +1647,7 @@
         });
         return () => { if (chartRef.current) chartRef.current.destroy(); };
       }, []);
-      return <canvas ref={canvasRef}
-        onMouseDown={e => {
-          if (e.button === 1) { e.preventDefault(); /* middle button pan handled by zoom plugin */ }
-        }} />;
+      return <canvas ref={canvasRef} />;
     }
 
     // ═══ PORTFOLIO ═══
