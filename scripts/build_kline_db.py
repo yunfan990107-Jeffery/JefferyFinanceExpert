@@ -173,7 +173,7 @@ def download_one(code: str, years: int = 0, server_ip: str = "") -> int:
             h = float(b["high"])
             l = float(b["low"])
             c = float(b["close"])
-            vol = float(b.get("volume", 0))
+            vol = float(b.get("vol", 0))
             amt = float(b.get("amount", 0))
             conn.execute(
                 "INSERT OR REPLACE INTO daily_k VALUES (?,?,?,?,?,?,?,?,?,?)",
