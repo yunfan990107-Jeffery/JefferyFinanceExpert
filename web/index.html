@@ -642,6 +642,16 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
+  // 找到当前缩放级别下的可见蜡烛范围
+  function getVisibleRange(chart, dataLen) {
+    const { left, right } = chart.chartArea;
+    const { x } = chart.scales;
+    let first = 0, last = dataLen - 1;
+    for (let i = 0; i < dataLen; i++) { if (x.getPixelForValue(i) >= left) { first = i; break; } }
+    for (let i = dataLen - 1; i >= 0; i--) { if (x.getPixelForValue(i) <= right) { last = i; break; } }
+    return { first, last };
+  }
+
     // ═══ 技术指标计算（纯函数） ═══
 
     function calcMA(data, period) {
@@ -752,7 +762,7 @@
       navItems.forEach(item => {
         if (!sections[item.section]) sections[item.section] = [];
         sections[item.section].push(item);
-      });
+      }
 
       return (
         <aside className="sidebar">
@@ -1302,9 +1312,11 @@
           const volMax = Math.max(...data.map(d => d.volume || 0));
           const volHeight = 60, volBase = bottom + 30;
           const barWidth = Math.max(1, Math.min(6, (right - left) / data.length * 0.5));
-          data.forEach((d, i) => {
+          const rangeV = getVisibleRange(chart, data.length);
+          for (let i = rangeV.first; i <= rangeV.last; i++) {
+            const d = data[i];
             const xPos = x.getPixelForValue(indices[i]);
-            if (xPos < left || xPos > right) return;
+            if (xPos < left || xPos > right) continue;
             const h = volMax > 0 ? ((d.volume || 0) / volMax) * volHeight : 0;
             const isUp = d.close >= d.open;
             ctx.fillStyle = isUp ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)';
