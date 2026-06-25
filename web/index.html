@@ -1380,7 +1380,7 @@
         const plugins = [candlePlugin, maPlugin, volumePlugin, subPlugin];
         chartRef.current = new Chart(ctx, {
           type: 'line',
-          data: { labels, datasets: [{ data: closes, borderColor: 'transparent', pointRadius: 0 }] },
+          data: { labels: indices, datasets: [{ data: closes, borderColor: 'transparent', pointRadius: 0 }] },
           options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false },
@@ -1424,7 +1424,7 @@
         gradient.addColorStop(1, 'rgba(6, 182, 212, 0.02)');
         chartRef.current = new Chart(ctx, {
           type: 'line',
-          data: { labels, datasets: [{ data: prices, borderColor: '#4F6BFF', backgroundColor: gradient, fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#4F6BFF', pointHoverBorderColor: '#fff', borderWidth: 2.5 }] },
+          data: { labels: indices, datasets: [{ data: prices, borderColor: '#4F6BFF', backgroundColor: gradient, fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#4F6BFF', pointHoverBorderColor: '#fff', borderWidth: 2.5 }] },
           options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
