@@ -1128,11 +1128,10 @@
                 ))}
               </div>
             </div>
-            <div style={{height:240}}>
-              {filteredKline ? <KlineChart data={filteredKline} layers={['candlestick','ma','volume','macd']} subIndicator={subIndicator} height={360} /> : (
-                <div style={{height:'100%',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted)'}}>输入代码搜索，加载K线图</div>
+            <div>
+              {filteredKline ? <KlineChart data={filteredKline} subIndicator={subIndicator} height={480} /> : (
+                <div style={{height:240,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted)'}}>输入代码搜索，加载K线图</div>
               )}
-            </div>
             {klineData && (
               <div style={{display:'flex',gap:6,marginTop:8}}>
                 <button onClick={()=>setSubIndicator('macd')}
@@ -1233,9 +1232,20 @@
         const mainChart = lw.createChart(container, {
           layout: { background: { color: 'transparent' }, textColor: '#8892A8' },
           grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
-          crosshair: { mode: 0, vertLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' }, horzLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' } },
-          rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)', autoScale: true },
-          timeScale: { borderColor: 'rgba(99,130,255,0.15)', timeVisible: false, barSpacing: 6 },
+          crosshair: {
+            mode: 1,  // Normal: 十字线跟随鼠标
+            vertLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' },
+            horzLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' },
+          },
+          rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)', autoScale: true, scaleMargins: { top: 0.05, bottom: 0.05 } },
+          timeScale: {
+            borderColor: 'rgba(99,130,255,0.15)', timeVisible: false,
+            barSpacing: 8,
+            minBarSpacing: 2,           // 最密：2px/根
+            rightOffset: 5,             // 右侧留白
+            fixLeftEdge: true,          // 禁止左移到数据之前
+            fixRightEdge: true,         // 禁止右移到数据之后
+          },
           width: container.clientWidth,
           height: Math.round(height * 0.60),
         });
@@ -1263,8 +1273,9 @@
         const volChart = lw.createChart(volDiv, {
           layout: { background: { color: 'transparent' }, textColor: '#8892A8' },
           grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
+          crosshair: { mode: 1, vertLine: { color: 'rgba(99,130,255,0.2)', style: 2 }, horzLine: { visible: false } },
           rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)', scaleMargins: { top: 0, bottom: 0 }, visible: false },
-          timeScale: { visible: false, barSpacing: 6 },
+          timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2, fixLeftEdge: true, fixRightEdge: true },
           handleScroll: false, handleScale: false,
         });
         volChart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' }).setData(volumeData);
@@ -1282,8 +1293,9 @@
         const subChart = lw.createChart(subDiv, {
           layout: { background: { color: 'rgba(0,0,0,0.15)' }, textColor: '#8892A8' },
           grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
+          crosshair: { mode: 1, vertLine: { color: 'rgba(99,130,255,0.2)', style: 2 }, horzLine: { visible: false } },
           rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)' },
-          timeScale: { visible: false, barSpacing: 6 },
+          timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2, fixLeftEdge: true, fixRightEdge: true },
           handleScroll: false, handleScale: false,
         });
 
