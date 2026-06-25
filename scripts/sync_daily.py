@@ -180,13 +180,12 @@ def sync_stock_list(conn: sqlite3.Connection) -> int:
 # 4. 概念 K 线（最近 30 天）
 # ═══════════════════════════════════════════════════════════════════
 
-def sync_concept_kline(conn: sqlite3.Connection) -> int:
-    """增量同步概念板块日K线。"""
+def sync_concept_kline(conn: sqlite3.Connection, workers: int = 8) -> int:
+    """增量同步概念板块日K线（多线程）。"""
     today = date.today()
     start = (today - timedelta(days=30)).strftime("%Y%m%d")
     end = today.strftime("%Y%m%d")
 
-    # 拿概念列表
     try:
         names = ak.stock_board_concept_name_ths()
     except Exception:
@@ -196,31 +195,41 @@ def sync_concept_kline(conn: sqlite3.Connection) -> int:
     concepts = names["name"].tolist()
     total = 0
     failed = 0
-    print(f"  概念 K 线: {len(concepts)} 个 …", end=" ", flush=True)
+    print(f"  概念 K 线: {len(concepts)} 个 ({workers}线程) …", end=" ", flush=True)
 
-    for name in concepts:
+    def _fetch_one(name: str) -> list[tuple]:
         try:
             df = ak.stock_board_concept_index_ths(symbol=name, start_date=start, end_date=end)
         except Exception:
-            failed += 1
-            continue
+            return []
         if df is None or df.empty:
-            continue
+            return []
         col_map = {"日期": "date", "开盘价": "open", "最高价": "high",
                    "最低价": "low", "收盘价": "close", "成交量": "volume", "成交额": "amount"}
         df = df.rename(columns=col_map)
+        rows = []
         for _, row in df.iterrows():
             d = str(row.get("date", ""))[:10]
             if not d:
                 continue
-            conn.execute(
-                "INSERT OR REPLACE INTO concept_kline VALUES (?,?,?,?,?,?,?,?)",
-                (name, d,
-                 float(row.get("open", 0) or 0), float(row.get("high", 0) or 0),
-                 float(row.get("low", 0) or 0), float(row.get("close", 0) or 0),
-                 float(row.get("volume", 0) or 0), float(row.get("amount", 0) or 0)),
-            )
-            total += 1
+            rows.append((name, d,
+                         float(row.get("open", 0) or 0), float(row.get("high", 0) or 0),
+                         float(row.get("low", 0) or 0), float(row.get("close", 0) or 0),
+                         float(row.get("volume", 0) or 0), float(row.get("amount", 0) or 0)))
+        return rows
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_fetch_one, c): c for c in concepts}
+        for f in as_completed(futures):
+            try:
+                rows = f.result()
+                if rows:
+                    for r in rows:
+                        conn.execute(
+                            "INSERT OR REPLACE INTO concept_kline VALUES (?,?,?,?,?,?,?,?)", r)
+                        total += 1
+            except Exception:
+                failed += 1
     conn.commit()
     print(f"{total} 条" + (f", {failed} 失败" if failed else ""))
     return total
@@ -298,7 +307,7 @@ def sync(days: int = 2) -> None:
 
     # 4. 概念 K 线
     t4 = time.time()
-    n4 = sync_concept_kline(conn)
+    n4 = sync_concept_kline(conn, 8)
     t4 = time.time() - t4
 
     # 5. 概念资金流
