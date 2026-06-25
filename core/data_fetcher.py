@@ -472,4 +472,63 @@ def get_price(code: str) -> dict:  # noqa: F811 (redefine intentionally)
     return result
 
 
+# ── 概念板块查询接口 ──────────────────────────────────────────────
+
+
+def get_stock_concepts(code: str) -> list[dict]:
+    """查询指定股票所属的概念板块。
+
+    Returns:
+        [{concept_code, concept_name}, ...]
+    """
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT concept_code, concept_name FROM stock_concept WHERE code=?",
+        (code,),
+    ).fetchall()
+    conn.close()
+    return [{"concept_code": r["concept_code"], "concept_name": r["concept_name"]}
+            for r in rows]
+
+
+def get_concept_stocks(concept_code: str) -> list[str]:
+    """查询指定概念板块的成分股代码列表。"""
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT code FROM stock_concept WHERE concept_code=?",
+        (concept_code,),
+    ).fetchall()
+    conn.close()
+    return [r["code"] for r in rows]
+
+
+def get_concept_kline(concept_code: str, days: int = 60) -> list[dict]:
+    """获取概念板块日K线。"""
+    conn = _get_conn()
+    start = (date.today() - timedelta(days=days + 10)).isoformat()
+    rows = conn.execute(
+        "SELECT * FROM concept_kline WHERE code=? AND date>=? ORDER BY date",
+        (concept_code, start),
+    ).fetchall()
+    conn.close()
+    return [_kline_row_to_dict(r) for r in rows[-days:]]
+
+
+def get_concept_fund_flow(concept_code: str = "", limit: int = 30) -> list[dict]:
+    """获取概念板块资金流向（最新 N 条）。concept_code 为空则返回全部。"""
+    conn = _get_conn()
+    if concept_code:
+        rows = conn.execute(
+            "SELECT * FROM concept_fund_flow WHERE code=? ORDER BY date DESC LIMIT ?",
+            (concept_code, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM concept_fund_flow ORDER BY net DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 _init_cache_tables()

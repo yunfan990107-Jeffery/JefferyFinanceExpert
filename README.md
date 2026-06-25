@@ -45,7 +45,8 @@ agents/     AI 角色提示词（quality_review.md）
 templates/  研究/风险/决策模板
 docs/       开发约定 + 任务卡(tasks/)
 tests/      单元测试
-	data/       本地 K 线数据库（gitignore，通过 build_kline_db.py 生成）
+	data/       本地 K 线 + 概念板块数据库（gitignore，通过 build_*.py 生成）
+	scripts/    建库脚本（build_kline_db.py / build_concept_db.py）
 ```
 
 ## 开发环境（本机）

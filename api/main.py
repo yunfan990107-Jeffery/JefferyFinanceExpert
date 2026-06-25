@@ -307,6 +307,38 @@ def stock_fundamentals(code: str):
 
 
 # ═══════════════════════════════════════════════════════════════════
+# 概念板块
+# ═══════════════════════════════════════════════════════════════════
+
+@app.get("/api/concept/stock/{code}")
+def stock_concepts(code: str):
+    """查询股票所属概念板块。"""
+    result = data_fetcher.get_stock_concepts(code)
+    return {"data": result}
+
+
+@app.get("/api/concept/{code}/stocks")
+def concept_stocks(code: str):
+    """查询概念板块成分股。"""
+    result = data_fetcher.get_concept_stocks(code)
+    return {"data": result}
+
+
+@app.get("/api/concept/{code}/kline")
+def concept_kline(code: str, days: int = 60):
+    """查询概念板块日K线。"""
+    result = data_fetcher.get_concept_kline(code, days=days)
+    return {"data": result}
+
+
+@app.get("/api/concept/fund_flow")
+def concept_fund_flow(concept_code: str = "", limit: int = 30):
+    """查询概念板块资金流向。"""
+    result = data_fetcher.get_concept_fund_flow(concept_code, limit=limit)
+    return {"data": result}
+
+
+# ═══════════════════════════════════════════════════════════════════
 # 健康检查
 # ═══════════════════════════════════════════════════════════════════
 

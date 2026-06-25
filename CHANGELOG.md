@@ -5,6 +5,53 @@
 
 ---
 
+## [2026-06-25] 概念板块数据库 + API
+
+### 背景
+
+项目需要板块资金流向、股票归属板块、板块 K 线、板块成分股查询能力。
+
+### 新增文件
+
+- **`scripts/build_concept_db.py`**（新建）
+  - 从同花顺 `q.10jqka.com.cn` 爬取 361 个概念板块
+  - 概念列表：解析 `q.10jqka.com.cn/gn/` HTML
+  - 成分股：AJAX 请求 `q.10jqka.com.cn/gn/detail/order/desc/page/N/ajax/1/code/{code}/`，自动分页
+  - 概念 K 线：`ak.stock_board_concept_index_ths()`，同花顺源
+  - 资金流向：`ak.stock_fund_flow_concept()`，同花顺源（`data.10jqka.com.cn`）
+
+### 修改文件
+
+- **`core/data_fetcher.py`**：新增 4 个查询接口
+  - `get_stock_concepts(code)` — 股票所属概念列表
+  - `get_concept_stocks(concept_code)` — 概念成分股列表
+  - `get_concept_kline(concept_code, days)` — 概念板块 K 线
+  - `get_concept_fund_flow(concept_code, limit)` — 概念资金流向
+
+- **`api/main.py`**：新增 4 个 REST 端点
+  - `GET /api/concept/stock/{code}` — 股票概念归属
+  - `GET /api/concept/{code}/stocks` — 概念成分股
+  - `GET /api/concept/{code}/kline?days=60` — 概念 K 线
+  - `GET /api/concept/fund_flow?concept_code=&limit=30` — 概念资金流
+
+### 数据库
+
+在 `data/market_data.sqlite` 新增 3 张表：
+
+| 表 | 说明 | 数据量 |
+|---|---|---|
+| `stock_concept` | 股票↔概念映射 | 4375 条，1976 只股票 |
+| `concept_kline` | 概念板块 K 线 | 172K 行，2 年 |
+| `concept_fund_flow` | 概念资金流向 | 235 条（日频） |
+
+### 已知限制
+
+- 部分概念成分股不完整（10jqka 分页限制待排查）
+- 平均每只股票 2.2 个概念（偏少，后续可扩充更多概念源）
+- 全量构建耗时约 7 分钟
+
+---
+
 ## [2026-06-25] Git 远程切换为 SSH + 环境信息
 
 ### 背景
