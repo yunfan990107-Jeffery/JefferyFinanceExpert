@@ -46,6 +46,11 @@ CREATE TABLE IF NOT EXISTS daily_k (
 );
 CREATE INDEX IF NOT EXISTS idx_daily_k_code ON daily_k(code);
 CREATE INDEX IF NOT EXISTS idx_daily_k_date ON daily_k(date);
+
+CREATE TABLE IF NOT EXISTS stock_list (
+    code TEXT PRIMARY KEY,
+    name TEXT NOT NULL
+);
 """
 
 # ── 真正的 A 股代码前缀 ──────────────────────────────────────────
