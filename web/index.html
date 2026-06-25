@@ -1118,7 +1118,7 @@
               </div>
             </div>
             <div style={{height:240}}>
-              {filteredKline ? <KlineChart data={filteredKline} layers={['candlestick','ma','volume','macd']} subIndicator={subIndicator} height={240} /> : (
+              {filteredKline ? <KlineChart data={filteredKline} layers={['candlestick','ma','volume','macd']} subIndicator={subIndicator} height={360} /> : (
                 <div style={{height:'100%',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted)'}}>输入代码搜索，加载K线图</div>
               )}
             </div>
@@ -1282,9 +1282,15 @@
           id: 'subIndicator',
           afterDraw(chart) {
             const { ctx, chartArea: { left, right, bottom }, scales: { x } } = chart;
-            const subTop = bottom + 100, subBottom = bottom + 250, subH = subBottom - subTop;
+            const subTop = bottom + 20, subBottom = bottom + 140, subH = subBottom - subTop;
             ctx.fillStyle = 'rgba(0,0,0,0.15)';
             ctx.fillRect(left, subTop, right - left, subH);
+            // sub-indicator separator line
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.beginPath();
+            ctx.moveTo(left, subTop);
+            ctx.lineTo(right, subTop);
+            ctx.stroke();
 
             if (subIndicator === 'macd') {
               const { dif, dea, macd } = sub;
