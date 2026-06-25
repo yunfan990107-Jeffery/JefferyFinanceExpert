@@ -668,7 +668,7 @@
       return result;
     }
 
-    function calcMACD(data) {
+    function calcMACD(sampledData) {
       const ema12 = calcEMA(data, 12);
       const ema26 = calcEMA(data, 26);
       const dif = new Array(data.length).fill(null);
@@ -1074,7 +1074,7 @@
         if (!code) return;
         setLoading(true); setError('');
         const [kData, priceData] = await Promise.all([
-          apiFetch('/api/stock/kline/' + code + '?days=500'),
+          apiFetch('/api/stock/kline/' + code + '?days=200'),
           apiFetch('/api/stock/price/' + code),
         ]);
         if (kData && kData.length) { setKlineData(kData); setError(''); }
@@ -1226,17 +1226,23 @@
       const chartRef = useRef(null);
       const indices = useMemo(() => (data || []).map((_, i) => i), [data]);
       const dateLabels = useMemo(() => (data || []).map(d => d.date?.slice(5) || ''), [data]);
-      const closes = useMemo(() => (data || []).map(d => d.close), [data]);
+      // 数据采样：>200 条时显示所有，否则取默认 200
+  const sampledData = useMemo(() => {
+    if (!data || data.length <= 250) return data;
+    const step = Math.ceil(data.length / 200);
+    return data.filter((_, i) => i % step === 0);
+  }, [data]);
+  const closes = useMemo(() => (sampledData || []).map(d => d.close), [sampledData]);
 
       // 预计算指标
       const maLines = useMemo(() => {
         const result = {};
-        for (const p of maPeriods) result[p] = calcMA(data, p);
+        for (const p of maPeriods) result[p] = calcMA(sampledData, p);
         return result;
       }, [data, maPeriods]);
 
-      const macdData = useMemo(() => data && data.length > 33 ? calcMACD(data) : null, [data]);
-      const kdjData  = useMemo(() => data && data.length > 9  ? calcKDJ(data, 9) : null, [data]);
+      const macdData = useMemo(() => data && data.length > 33 ? calcMACD(sampledData) : null, [data]);
+      const kdjData  = useMemo(() => data && data.length > 9  ? calcKDJ(sampledData, 9) : null, [data]);
 
       const maColors = { 5: '#9CA3AF', 10: '#F59E0B', 20: '#3B82F6', 60: '#8B5CF6' };
 
@@ -1245,9 +1251,9 @@
         id: 'candlestick',
         afterDraw(chart) {
           const { ctx, chartArea: { left, right }, scales: { x, y } } = chart;
-          if (!data || !data.length) return;
-          const barWidth = Math.max(2, Math.min(8, (right - left) / data.length * 0.6));
-          data.forEach((d, i) => {
+          if (!sampledData || !sampledData.length) return;
+          const barWidth = Math.max(2, Math.min(8, (right - left) / sampledData.length * 0.6));
+          sampledData.forEach((d, i) => {
             const xPos = x.getPixelForValue(indices[i]);
             if (xPos < left || xPos > right) return;
             const isUp = d.close >= d.open;
@@ -1298,11 +1304,11 @@
         id: 'volumeBars',
         afterDraw(chart) {
           const { ctx, chartArea: { left, right, bottom }, scales: { x } } = chart;
-          if (!data || !data.length) return;
-          const volMax = Math.max(...data.map(d => d.volume || 0));
+          if (!sampledData || !sampledData.length) return;
+          const volMax = Math.max(...sampledData.map(d => d.volume || 0));
           const volHeight = 60, volBase = bottom + 30;
-          const barWidth = Math.max(1, Math.min(6, (right - left) / data.length * 0.5));
-          data.forEach((d, i) => {
+          const barWidth = Math.max(1, Math.min(6, (right - left) / sampledData.length * 0.5));
+          sampledData.forEach((d, i) => {
             const xPos = x.getPixelForValue(indices[i]);
             if (xPos < left || xPos > right) return;
             const h = volMax > 0 ? ((d.volume || 0) / volMax) * volHeight : 0;
@@ -1311,7 +1317,7 @@
             ctx.fillRect(xPos - barWidth / 2, volBase - h, barWidth, h);
           });
           // 平均量参考线
-          const avgVol = data.reduce((s, d) => s + (d.volume || 0), 0) / data.length;
+          const avgVol = sampledData.reduce((s, d) => s + (d.volume || 0), 0) / sampledData.length;
           const avgH = volMax > 0 ? (avgVol / volMax) * volHeight : 0;
           ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.setLineDash([2, 4]);
           ctx.beginPath(); ctx.moveTo(left, volBase - avgH); ctx.lineTo(right, volBase - avgH); ctx.stroke();
@@ -1337,11 +1343,11 @@
               const vMin = Math.min(...allVals), vMax = Math.max(...allVals), vRange = vMax - vMin || 1;
               const yV = v => subBottom - ((v - vMin) / vRange) * subH;
               // MACD 柱
-              data.forEach((d, i) => {
+              sampledData.forEach((d, i) => {
                 if (macd[i] == null) return;
                 const xPos = x.getPixelForValue(indices[i]);
                 if (xPos < left || xPos > right) return;
-                const bw = Math.max(1, (right - left) / data.length * 0.5);
+                const bw = Math.max(1, (right - left) / sampledData.length * 0.5);
                 const y0 = yV(0), yM = yV(macd[i]);
                 ctx.fillStyle = macd[i] >= 0 ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)';
                 ctx.fillRect(xPos - bw / 2, Math.min(y0, yM), bw, Math.abs(yM - y0));
@@ -1387,8 +1393,8 @@
         if (!canvasRef.current || !data || !data.length) return;
         if (chartRef.current) chartRef.current.destroy();
         const ctx = canvasRef.current.getContext('2d');
-        const yMin = Math.min(...data.map(d => d.low)) * 0.995;
-        const yMax = Math.max(...data.map(d => d.high)) * 1.005;
+        const yMin = Math.min(...sampledData.map(d => d.low)) * 0.995;
+        const yMax = Math.max(...sampledData.map(d => d.high)) * 1.005;
         const zoomConfig = {
       pan: { enabled: true, mode: 'x' },
       zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x', drag: { enabled: true, backgroundColor: 'rgba(79,107,255,0.1)', borderColor: 'rgba(79,107,255,0.3)' } },
@@ -1402,9 +1408,9 @@
             plugins: { legend: { display: false }, zoom: zoomConfig,
               tooltip: {
                 callbacks: {
-                  title: ctx => data[ctx[0].dataIndex]?.date || '',
+                  title: ctx => sampledData[ctx[0].dataIndex]?.date || '',
                   label: ctx => {
-                    const d = data[ctx.dataIndex];
+                    const d = sampledData[ctx.dataIndex];
                     return d ? [`开: ${d.open}  高: ${d.high}`, `低: ${d.low}  收: ${d.close}`, `量: ${(d.volume||0).toLocaleString()}`] : [];
                   },
                 },
