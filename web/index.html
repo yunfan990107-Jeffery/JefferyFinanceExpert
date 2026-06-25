@@ -1086,9 +1086,12 @@
       const selectStock = (code) => { setQuery(code); setSuggestions([]); doResearchCode(code); };
 
       const doResearch = useCallback(async () => {
-        const code = query.trim(); if (!code) return;
+        const q = query.trim(); if (!q) return;
+        // 优先用下拉选中的代码
+        const match = suggestions.find(s => s.name === q || s.code === q);
+        const code = match ? match.code : q;
         setSuggestions([]); doResearchCode(code);
-      }, [query, doResearchCode]);
+      }, [query, doResearchCode, suggestions]);
 
       // 按周期过滤 K 线
       const periodDays = { '日线': 500, '周线': 104, '月线': 48 };
