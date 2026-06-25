@@ -15,8 +15,13 @@ import time
 from datetime import date, timedelta
 from pathlib import Path
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import akshare as ak
 from pytdx.hq import TdxHq_API
+
+import threading as _th
+
+_tdx_pool = _th.local()  # 线程局部 TDX 连接
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -61,31 +66,58 @@ def _all_stock_codes(conn: sqlite3.Connection) -> list[tuple[str, int]]:
 # 1. 个股 K 线
 # ═══════════════════════════════════════════════════════════════════
 
-def sync_stock_kline(conn: sqlite3.Connection, api: TdxHq_API, days: int) -> int:
-    """增量同步个股日K线。只拉最近 days 条，INSERT OR REPLACE。"""
+def _tdx_connect() -> TdxHq_API:
+    """获取线程局部的 TDX 连接。"""
+    if not hasattr(_tdx_pool, "api"):
+        api = TdxHq_API()
+        api.connect(TDX_IP, TDX_PORT, time_out=10)
+        _tdx_pool.api = api
+    return _tdx_pool.api
+
+
+def _download_one_stock(code: str, market: int, days: int) -> list[tuple]:
+    """下载单只股票最近 days 条 K 线，返回 [(code, date, open, high, low, close, vol, amount), ...]"""
+    api = _tdx_connect()
+    try:
+        bars = api.get_security_bars(9, market, code, 0, days + 1)
+    except Exception:
+        return []
+    if not bars:
+        return []
+    result = []
+    for b in bars:
+        if b["year"] < 2024:
+            continue
+        d = f"{b['year']}-{b['month']:02d}-{b['day']:02d}"
+        result.append((code, d, float(b["open"]), float(b["high"]), float(b["low"]),
+                       float(b["close"]), float(b.get("vol", 0)), float(b.get("amount", 0))))
+    return result
+
+
+def sync_stock_kline(conn: sqlite3.Connection, api: TdxHq_API, days: int, workers: int = 8) -> int:
+    """增量同步个股日K线（多线程）。"""
     codes = _all_stock_codes(conn)
     total = 0
     failed = 0
-    print(f"  个股 K 线: {len(codes)} 只 …", end=" ", flush=True)
+    print(f"  个股 K 线: {len(codes)} 只 ({workers}线程) …", end=" ", flush=True)
 
-    for code, market in codes:
-        try:
-            bars = api.get_security_bars(9, market, code, 0, days + 1)
-        except Exception:
-            failed += 1
-            continue
-        if not bars:
-            continue
-        for b in bars:
-            if b["year"] < 2024:
-                continue
-            d = f"{b['year']}-{b['month']:02d}-{b['day']:02d}"
-            conn.execute(
-                "INSERT OR REPLACE INTO daily_k VALUES (?,?,?,?,?,?,?,?,?,?)",
-                (code, d, float(b["open"]), float(b["high"]), float(b["low"]),
-                 float(b["close"]), float(b.get("vol", 0)), float(b.get("amount", 0)), None, None),
-            )
-            total += 1
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_download_one_stock, c, m, days): c for c, m in codes}
+        for f in as_completed(futures):
+            code = futures[f]
+            try:
+                rows = f.result()
+                if rows:
+                    for r in rows:
+                        conn.execute(
+                            "INSERT OR REPLACE INTO daily_k VALUES (?,?,?,?,?,?,?,?,?,?)",
+                            (r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], None, None),
+                        )
+                        total += 1
+                else:
+                    failed += 1
+            except Exception:
+                failed += 1
     conn.commit()
     print(f"{total} 条" + (f", {failed} 失败" if failed else ""))
     return total
@@ -247,7 +279,7 @@ def sync(days: int = 2) -> None:
         print("❌ 通达信连接失败！")
         return
 
-    # 1. 个股 K 线
+    # 1. 个股 K 线（多线程）
     t1 = time.time()
     n1 = sync_stock_kline(conn, api, days)
     t1 = time.time() - t1
