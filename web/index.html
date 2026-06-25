@@ -1061,12 +1061,6 @@
 	        else setSuggestions([]);
 	      }, []);
 
-	      const selectStock = (code) => {
-	        setQuery(code);
-	        setSuggestions([]);
-	        doResearchCode(code);
-	      };
-
 	      const doResearchCode = useCallback(async (code) => {
 	        if (!code) return;
 	        setLoading(true);
@@ -1085,6 +1079,12 @@
 	        if (priceData) setStockInfo(priceData);
 	        setLoading(false);
 	      }, []);
+
+	      const selectStock = (code) => {
+	        setQuery(code);
+	        setSuggestions([]);
+	        doResearchCode(code);
+	      };
 
 	      const doResearch = useCallback(async () => {
 	        const code = query.trim();
