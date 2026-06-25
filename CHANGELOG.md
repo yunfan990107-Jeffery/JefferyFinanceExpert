@@ -50,6 +50,15 @@
 - 平均每只股票 2.2 个概念（偏少，后续可扩充更多概念源）
 - 全量构建耗时约 7 分钟
 
+### 代码质量改进（同日）
+
+- `fetch_concept_list`：从脆弱的正则解析改为 BeautifulSoup
+- HTTP 连接复用：共享 `requests.Session()`
+- `build()` 函数拆分：`_step1/2/3/4` + `_print_summary`
+- 移除未使用的 `stock_to_concepts` 字典 → 改用 `set[str]`
+- 失败概念名现在会在日志中报告
+- 完整类型标注（含返回类型）
+
 ---
 
 ## [2026-06-25] Git 远程切换为 SSH + 环境信息
