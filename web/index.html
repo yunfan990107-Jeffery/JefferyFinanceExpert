@@ -1052,13 +1052,26 @@
       const [report, setReport] = useState(null);
 
 	      const [error, setError] = useState('');
+	      const [suggestions, setSuggestions] = useState([]);
 
-	      const doResearch = useCallback(async () => {
-	        if (!query.trim()) return;
+	      const searchStocks = useCallback(async (q) => {
+	        if (q.length < 1) { setSuggestions([]); return; }
+	        const res = await apiFetch('/api/stock/search?q=' + encodeURIComponent(q));
+	        if (res && res.length) setSuggestions(res.slice(0, 8));
+	        else setSuggestions([]);
+	      }, []);
+
+	      const selectStock = (code) => {
+	        setQuery(code);
+	        setSuggestions([]);
+	        doResearchCode(code);
+	      };
+
+	      const doResearchCode = useCallback(async (code) => {
+	        if (!code) return;
 	        setLoading(true);
 	        setError('');
-	        const code = query.trim();
-	        const [kData, fundData] = await Promise.all([
+	        const [kData, priceData] = await Promise.all([
 	          apiFetch('/api/stock/kline/' + code + '?days=500'),
 	          apiFetch('/api/stock/price/' + code),
 	        ]);
@@ -1067,11 +1080,18 @@
 	          setError('');
 	        } else {
 	          setKlineData(null);
-	          setError('未找到 K 线数据。请确认输入的是 6 位数字代码（如 600519），而非股票名称。');
+	          setError('未找到 K 线数据。请确认输入的是 6 位数字代码（如 600519）。');
 	        }
-	        if (fundData) setStockInfo(fundData);
+	        if (priceData) setStockInfo(priceData);
 	        setLoading(false);
-	      }, [query]);
+	      }, []);
+
+	      const doResearch = useCallback(async () => {
+	        const code = query.trim();
+	        if (!code) return;
+	        setSuggestions([]);
+	        doResearchCode(code);
+	      }, [query, doResearchCode]);
 
       // 按周期过滤 K 线
       const periodDays = { '日线': 500, '周线': 104, '月线': 48 };
@@ -1082,8 +1102,28 @@
           <div className="page-header"><h2>个股分析</h2></div>
 
           {/* ── 搜索 + 概览 ── */}
-          <div className="card" style={{marginBottom:14,padding:'14px 20px',display:'flex',alignItems:'center',gap:16}}>
-            <input className="form-input" placeholder="输入6位代码 如 600519" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&doResearch()} style={{maxWidth:200}} />
+          <div className="card" style={{marginBottom:14,padding:'14px 20px',display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+            <div style={{position:'relative',flex:1,minWidth:200,maxWidth:300}}>
+              <input className="form-input" placeholder="输入代码或名称 如 600519 茅台" value={query}
+                onChange={e=>{setQuery(e.target.value);searchStocks(e.target.value);}}
+                onKeyDown={e=>e.key==='Enter'&&doResearch()}
+                style={{width:'100%',boxSizing:'border-box'}}
+                onBlur={()=>setTimeout(()=>setSuggestions([]),200)} />
+              {suggestions.length > 0 && (
+                <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:99,
+                  background:'var(--elevated)',border:'1px solid var(--border)',borderRadius:'0 0 6px 6px',maxHeight:240,overflow:'auto'}}>
+                  {suggestions.map(s => (
+                    <div key={s.code} onMouseDown={()=>selectStock(s.code)}
+                      style={{padding:'8px 14px',cursor:'pointer',fontSize:13,
+                        borderBottom:'1px solid var(--border)',
+                        color:'var(--text)',display:'flex',justifyContent:'space-between'}}>
+                      <span>{s.name}</span>
+                      <span style={{color:'var(--muted)',fontSize:12,fontFamily:'var(--font-mono)'}}>{s.code}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <button className="btn btn-primary" onClick={doResearch} disabled={loading}>{loading?'搜索中...':'搜索'}</button>
             {error && <span style={{fontSize:12,color:'var(--warning)'}}>{error}</span>}
             {stockInfo && (

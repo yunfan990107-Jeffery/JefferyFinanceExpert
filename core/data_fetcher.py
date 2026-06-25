@@ -472,6 +472,21 @@ def get_price(code: str) -> dict:  # noqa: F811 (redefine intentionally)
     return result
 
 
+def search_stock(q: str) -> list[dict]:
+    """按名称或代码模糊搜索股票，最多返回 10 条。"""
+    conn = _get_conn()
+    try:
+        rows = conn.execute(
+            "SELECT code, name FROM stock_list WHERE name LIKE ? OR code LIKE ? LIMIT 10",
+            (f"%{q}%", f"%{q}%"),
+        ).fetchall()
+        return [{"code": r[0], "name": r[1]} for r in rows]
+    except sqlite3.OperationalError:
+        return []
+    finally:
+        conn.close()
+
+
 # ── 概念板块查询接口 ──────────────────────────────────────────────
 
 

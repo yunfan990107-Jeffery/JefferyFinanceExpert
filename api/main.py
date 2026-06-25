@@ -306,6 +306,15 @@ def stock_fundamentals(code: str):
     return {"data": result}
 
 
+@app.get("/api/stock/search")
+def stock_search(q: str = ""):
+    """按名称或代码搜索股票，返回 [{code, name}, ...]"""
+    if len(q) < 1:
+        return {"data": []}
+    result = data_fetcher.search_stock(q)
+    return {"data": result}
+
+
 # ═══════════════════════════════════════════════════════════════════
 # 概念板块
 # ═══════════════════════════════════════════════════════════════════
