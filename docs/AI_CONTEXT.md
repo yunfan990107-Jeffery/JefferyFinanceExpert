@@ -89,3 +89,23 @@ npx serve web -l 3000 --no-clipboard
 - 新增功能按 `brainstorming → writing-plans → implementing` 流程
 - 日志：变更记录写入 `CHANGELOG.md`，简要写入 `docs/DEVLOG.md`
 - 扩展 K 线指标：实现 `render` 函数 + 加入 `layers` 数组 + 加切换按钮，不改 KlineChart 主体
+
+## 红线
+
+- **不要改 `core/` 已定义的函数签名与 `FeishuClient` 方法签名**
+- 不写任何真实下单/交易执行代码
+- 不提交 `.env` 或任何密钥
+- LLM 调用统一走 `core/llm_client.chat()`，不要自己写 requests
+
+## LLM 调用
+
+```
+llm_client.chat(system_prompt, user_prompt) → str     # 通用调用
+llm_client.load_role("devil_advocate.md") → str       # 加载角色提示词
+```
+DeepSeek（OpenAI 兼容），配置在 `.env`。未配置 key 时自动降级，不报错。
+
+## 飞书资源
+
+所有文档与多维表格挂入知识库 `space_id=7652969095092014047`，不在个人空间。
+数据表位置：https://qcnsl9sevuhc.feishu.cn/wiki/QLDOw8ehRiypsRkemrVcNIFQnvd

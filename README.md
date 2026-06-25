@@ -10,16 +10,11 @@
 ## 文档索引（开发 agent 必读，按此顺序）
 | 文件 | 作用 |
 |---|---|
-| [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) | **新 AI 上下文速览**（当前状态+架构+已知问题） |
-| [`docs/CHANGELOG.md`](CHANGELOG.md) | 面向 AI 的详细变更日志 |
-| [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | 新 agent 冷启动流程 |
-| [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | 新 agent 冷启动流程（先读） |
-| [`docs/DEV_AGENT_SYSTEM_PROMPT.md`](docs/DEV_AGENT_SYSTEM_PROMPT.md) | 开发 agent 的 system prompt |
-| [`docs/README.md`](docs/README.md) | 开发约定 + `core/` 接口契约 |
-| [`docs/tasks/`](docs/tasks/) | P0 任务卡 T0-1~T0-8（认领一张） |
-| [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) | 验收清单(DoD) + 自验收取证方式 |
-| [`docs/COMPLETION_RECORD.md`](docs/COMPLETION_RECORD.md) | 完成后记录什么（含模板） |
-| [`docs/DEVLOG.md`](docs/DEVLOG.md) | 开发日志（完成后加一行） |
+| [`docs/AI_CONTEXT.md`](docs/AI_CONTEXT.md) | **新 AI 上下文速览**（当前状态+架构+已知问题+红线） |
+| [`CHANGELOG.md`](CHANGELOG.md) | 面向 AI 的详细变更日志 |
+| [`docs/DEVLOG.md`](docs/DEVLOG.md) | 人类可读开发日志 |
+| [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) | 验收清单 + 自验收方式 |
+| [`docs/archive/tasks/`](docs/archive/tasks/) | 已完成的 P0/P1/P2 任务卡（历史参考） |
 
 > 飞书镜像（人类档案）：架构主文档「V0.2.1 人类易读版」、「需求文档集(PRD)」、「开发文档集」（含以上各手册镜像）。代码与文档以本仓库为准。
 

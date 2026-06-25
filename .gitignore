@@ -33,3 +33,6 @@ AgentPrivateFinanaceExpertJefferyFinanceExpert/
 
 # 运行日志
 logs/
+
+# 平台 skill 缓存
+.claude/
