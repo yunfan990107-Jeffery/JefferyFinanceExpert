@@ -278,28 +278,37 @@ def stock_kline(code: str, days: int = 60):
 
 @app.get("/api/market/indices")
 def market_indices():
-    """获取主要指数行情。"""
+    """获取主要指数行情（从 daily_k 取最新 close）。"""
     import sqlite3
     from pathlib import Path
     db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
     conn = sqlite3.connect(str(db))
-    codes = ["000001","399001","399006","000688","000300","000016"]
-    names = {"000001":"上证指数","399001":"深证成指","399006":"创业板指","000688":"科创50","000300":"沪深300","000016":"上证50"}
-    market_map = {"000001":"A股","399001":"A股","399006":"A股","000688":"A股","000300":"A股","000016":"A股"}
+    # 代码 -> (名称, 市场, 合理价格范围)
+    index_map = {
+        "000001": ("上证指数",  "A股", 3000, 4000),
+        "399001": ("深证成指",  "A股", 10000, 12000),
+        "399006": ("创业板指",  "A股", 2000, 2500),
+        "000688": ("科创50",   "A股", 1000, 1300),
+        "000300": ("沪深300",   "A股", 3500, 4500),
+        "000016": ("上证50",   "A股", 2500, 3000),
+    }
     result = []
-    for code in codes:
+    for code, (name, market, lo, hi) in index_map.items():
         row = conn.execute(
             "SELECT close, date FROM daily_k WHERE code=? ORDER BY date DESC LIMIT 2",
             (code,),
         ).fetchall()
-        if row and len(row) >= 1:
-            latest = row[0]
-            prev = row[1] if len(row) > 1 else latest
-            change_pct = round((latest[0] - prev[0]) / prev[0] * 100, 2) if prev[0] else 0
+        if row and len(row) >= 2 and lo <= row[0][0] <= hi:
+            latest, prev = row[0][0], row[1][0]
+            change_pct = round((latest - prev) / prev * 100, 2)
             result.append({
-                "name": names.get(code, code), "code": code,
-                "price": round(latest[0], 2), "change_pct": change_pct,
-                "market": market_map.get(code, ""),
+                "name": name, "code": code,
+                "price": round(latest, 2), "change_pct": change_pct, "market": market,
+            })
+        elif row and len(row) >= 1 and lo <= row[0][0] <= hi:
+            result.append({
+                "name": name, "code": code,
+                "price": round(row[0][0], 2), "change_pct": 0, "market": market,
             })
     conn.close()
     return {"data": result}
