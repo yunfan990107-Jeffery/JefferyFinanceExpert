@@ -50,29 +50,6 @@ def warmup_cache():
 # 市场概览
 # ═══════════════════════════════════════════════════════════════════
 
-@app.get("/api/market/indices")
-def market_indices():
-    """主要指数行情（上证/深证/创业板）。"""
-    try:
-        import akshare as ak
-        df = ak.stock_zh_index_spot_em()
-        targets = {"上证指数": "000001", "深证成指": "399001", "创业板指": "399006"}
-        result = []
-        for name, code in targets.items():
-            row = df[df["代码"] == code]
-            if not row.empty:
-                r = row.iloc[0]
-                result.append({
-                    "name": name,
-                    "code": code,
-                    "price": float(r["最新价"]) if r.get("最新价") else None,
-                    "change_pct": float(r["涨跌幅"]) if r.get("涨跌幅") else None,
-                    "volume": float(r["成交额"]) if r.get("成交额") else None,
-                })
-        return {"data": result}
-    except Exception as e:
-        return {"data": [], "error": str(e)}
-
 
 @app.get("/api/market/overview")
 def market_overview():
