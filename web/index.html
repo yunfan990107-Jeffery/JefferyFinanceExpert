@@ -1344,7 +1344,8 @@
         const ctx = canvasRef.current.getContext('2d');
         const yMin = Math.min(...data.map(d => d.low)) * 0.995;
         const yMax = Math.max(...data.map(d => d.high)) * 1.005;
-        const zoomConfig = { pan: { enabled: true, mode: "x" }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x", drag: { enabled: true } } };
+        if (typeof Chart !== "undefined" && Chart.register && window.chartjsPluginZoom) { Chart.register(window.chartjsPluginZoom); }
+        const zoomConfig = { pan: { enabled: true, mode: "x" }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x", drag: { enabled: true }, limits: { x: { minRange: 5 } } } };
         const plugins = [candlePlugin, maPlugin, volumePlugin, subPlugin];
         chartRef.current = new Chart(ctx, {
           type: 'line',
