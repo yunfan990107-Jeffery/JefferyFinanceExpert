@@ -363,24 +363,34 @@ def zg_screen(body: dict):
         return {"data": []}
     import sqlite3
     from pathlib import Path
+    from collections import defaultdict
     db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
     conn = sqlite3.connect(str(db))
     placeholders = ",".join("?" for _ in rules)
     rows = conn.execute(
-        f"SELECT code, rule_name, score, details FROM zg_signals "
-        f"WHERE rule_name IN ({placeholders}) AND date=(SELECT MAX(date) FROM zg_signals) "
-        f"ORDER BY code",
+        f"SELECT z.code, z.rule_name, z.score, z.details, s.name, sl.close, sl.date "
+        f"FROM zg_signals z "
+        f"LEFT JOIN (SELECT code, name FROM stock_list) s ON z.code = s.code "
+        f"LEFT JOIN (SELECT code, close, date FROM daily_k WHERE (code,date) IN (SELECT code, MAX(date) FROM daily_k GROUP BY code)) sl ON z.code = sl.code "
+        f"WHERE z.rule_name IN ({placeholders}) AND z.date=(SELECT MAX(date) FROM zg_signals) "
+        f"ORDER BY z.code",
         rules,
     ).fetchall()
-    conn.close()
-    from collections import defaultdict
-    merged = defaultdict(lambda: {"rules": [], "scores": {}, "details": {}})
+    merged = defaultdict(lambda: {"rules": [], "scores": {}, "details": {}, "name": "", "close": 0, "date": ""})
     for r in rows:
-        code, rule, score, det = r[0], r[1], r[2], r[3]
+        code, rule, score, det, name, close, date = r[0], r[1], r[2], r[3], r[4] or code, r[5] or 0, r[6] or ""
+        merged[code]["name"] = name
+        merged[code]["close"] = close
+        merged[code]["date"] = date
         merged[code]["rules"].append(rule)
         merged[code]["scores"][rule] = score
         merged[code]["details"][rule] = det
-    return {"data": [{"code": c, "rules": v["rules"], "scores": v["scores"], "details": v["details"]} for c, v in sorted(merged.items())]}
+    conn.close()
+    return {"data": [
+        {"code": c, "name": v["name"], "close": v["close"], "date": v["date"],
+         "rules": v["rules"], "scores": v["scores"], "details": v["details"]}
+        for c, v in sorted(merged.items())
+    ]}
 
 
 @app.get("/api/zg/{code}")

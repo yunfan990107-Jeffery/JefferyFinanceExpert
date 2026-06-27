@@ -1741,22 +1741,20 @@
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
                     <tr style={{ color: 'var(--muted)', textAlign: 'left' }}>
-                      <th style={{ padding: '4px 8px' }}>股票</th>
-                      <th style={{ padding: '4px 8px' }}>匹配规则</th>
-                      <th style={{ padding: '4px 8px' }}>评分</th>
+                      <th style={{ padding: '4px 6px' }}>股票</th>
+                      <th style={{ padding: '4px 6px' }}>最新价</th>
+                      <th style={{ padding: '4px 6px' }}>匹配规则</th>
+                      <th style={{ padding: '4px 6px' }}>评分</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {results.slice(0, 100).map(r => (
+                    {results.slice(0, 200).map(r => (
                       <tr key={r.code} onClick={() => setSelectedCode(r.code)}
-                        style={{ cursor: 'pointer', background: selectedCode === r.code ? 'rgba(79,107,255,0.1)' : 'transparent' }}>
-                        <td style={{ padding: '4px 8px', color: 'var(--amber)' }}>{r.code}</td>
-                        <td style={{ padding: '4px 8px' }}>
-                          {r.rules.map(rn => <span key={rn} className="badge" style={{ display: 'inline-block', padding: '1px 6px', borderRadius: 3, fontSize: 10, background: 'rgba(232,168,64,0.15)', color: 'var(--amber)', marginRight: 4 }}>{rn}</span>)}
-                        </td>
-                        <td style={{ padding: '4px 8px' }}>
-                          {r.rules.map(rn => <span key={rn} style={{ fontSize: 10, marginRight: 6 }}>{rn}: {r.details[rn]}</span>)}
-                        </td>
+                        style={{ cursor: 'pointer', borderBottom: '1px solid rgba(37,42,54,0.5)', background: selectedCode === r.code ? 'rgba(79,107,255,0.1)' : 'transparent' }}>
+                        <td style={{ padding: '3px 6px' }}><span style={{ color: 'var(--amber)', fontWeight: 600 }}>{r.name || r.code}</span><div style={{ fontSize: 10, color: 'var(--muted)' }}>{r.code}</div></td>
+                        <td style={{ padding: '3px 6px', fontFamily: 'var(--font-mono)', fontSize: 11 }}>{r.close ? r.close.toFixed(2) : '—'}</td>
+                        <td style={{ padding: '3px 6px' }}>{r.rules.map(rn => <span key={rn} style={{ display: 'inline-block', padding: '1px 5px', borderRadius: 2, fontSize: 10, background: 'rgba(232,168,64,0.12)', color: 'var(--amber)', marginRight: 3 }}>{rn}</span>)}</td>
+                        <td style={{ padding: '3px 6px', fontSize: 10 }}>{r.rules.map(rn => <div key={rn} style={{ color: 'var(--muted)' }}>{rn}: {r.details[rn]}</div>)}</td>
                       </tr>
                     ))}
                   </tbody>
