@@ -800,9 +800,9 @@
 
     const API_BASE = 'http://localhost:8000';
 
-    async function apiFetch(path) {
+    async function apiFetch(path, opts = {}) {
       try {
-        const resp = await fetch(API_BASE + path);
+        const resp = await fetch(API_BASE + path, opts);
         if (!resp.ok) throw new Error(resp.statusText);
         const json = await resp.json();
         return json.data ?? json;
@@ -829,6 +829,7 @@
       { id: 'record', label: '记判断', icon: 'record', section: '操作' },
       { id: 'review', label: '复盘中心', icon: 'review', section: '操作' },
       { id: 'portfolio', label: '持仓看板', icon: 'portfolio', section: '操作' },
+      { id: 'screen', label: '选股', icon: 'search', section: '操作' },
       { id: 'calibration', label: '校准报告', icon: 'calibration', section: '提升' },
     ];
 
@@ -1640,6 +1641,104 @@
     }
 
     // ═══ CALIBRATION ═══
+    function ScreenPage() {
+      const [rules, setRules] = useState({ B1: false, 红砖: false, B1宽松: false, 周线B1: false, B2: false, Tepu: false, 单针: false });
+      const [results, setResults] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [selectedCode, setSelectedCode] = useState(null);
+
+      const ruleNames = Object.keys(rules);
+      const toggleRule = (r) => setRules(prev => ({ ...prev, [r]: !prev[r] }));
+      const activeRules = ruleNames.filter(r => rules[r]);
+
+      const doSearch = async () => {
+        if (!activeRules.length) return;
+        setLoading(true);
+        const res = await apiFetch('/api/screen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules: activeRules }) });
+        setResults(res || []);
+        setSelectedCode(null);
+        setLoading(false);
+      };
+
+      return (
+        <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 100px)' }}>
+          {/* ── 左侧栏 ── */}
+          <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="card" style={{ padding: '14px 16px' }}>
+              <div className="card-title" style={{ marginBottom: 10 }}>参数检索</div>
+              <div className="card-title" style={{ marginBottom: 6 }}>过滤规则</div>
+              {ruleNames.map(r => (
+                <label key={r} className="rule" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                  <input type="checkbox" checked={rules[r]} onChange={() => toggleRule(r)} />
+                  <span>{r}</span>
+                </label>
+              ))}
+              <button onClick={doSearch} disabled={loading || !activeRules.length}
+                style={{ marginTop: 10, width: '100%', padding: '8px 0', background: activeRules.length ? 'var(--primary)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 4, cursor: activeRules.length ? 'pointer' : 'default', fontSize: 12 }}>
+                {loading ? '检索中…' : '开始检索'}
+              </button>
+            </div>
+          </div>
+
+          {/* ── 右侧主内容 ── */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+            <div className="card" style={{ flex: '0 0 auto', maxHeight: '50%', overflow: 'auto', padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 13 }}>条件检索 · <span style={{ color: 'var(--amber)' }}>已选 {activeRules.length} 规则</span> · 结果 <b>{results ? results.length : 0}</b> 条</span>
+              </div>
+              {!results ? (
+                <div style={{ color: 'var(--muted)', textAlign: 'center', padding: 30 }}>勾选规则后点击「开始检索」</div>
+              ) : results.length === 0 ? (
+                <div style={{ color: 'var(--muted)', textAlign: 'center', padding: 30 }}>无匹配结果</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ color: 'var(--muted)', textAlign: 'left' }}>
+                      <th style={{ padding: '4px 8px' }}>股票</th>
+                      <th style={{ padding: '4px 8px' }}>匹配规则</th>
+                      <th style={{ padding: '4px 8px' }}>评分</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.slice(0, 100).map(r => (
+                      <tr key={r.code} onClick={() => setSelectedCode(r.code)}
+                        style={{ cursor: 'pointer', background: selectedCode === r.code ? 'rgba(79,107,255,0.1)' : 'transparent' }}>
+                        <td style={{ padding: '4px 8px', color: 'var(--amber)' }}>{r.code}</td>
+                        <td style={{ padding: '4px 8px' }}>
+                          {r.rules.map(rn => <span key={rn} className="badge" style={{ display: 'inline-block', padding: '1px 6px', borderRadius: 3, fontSize: 10, background: 'rgba(232,168,64,0.15)', color: 'var(--amber)', marginRight: 4 }}>{rn}</span>)}
+                        </td>
+                        <td style={{ padding: '4px 8px' }}>
+                          {r.rules.map(rn => <span key={rn} style={{ fontSize: 10, marginRight: 6 }}>{rn}: {r.details[rn]}</span>)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* ── K 线预览 ── */}
+            <div className="card" style={{ flex: 1, padding: '10px 14px', minHeight: 200 }}>
+              {selectedCode ? (
+                <KlineChartPreview code={selectedCode} />
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)' }}>点击结果行查看 K 线</div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function KlineChartPreview({ code }) {
+      const [kdata, setKdata] = useState(null);
+      useEffect(() => {
+        apiFetch('/api/stock/kline/' + code + '?days=300').then(setKdata);
+      }, [code]);
+      if (!kdata) return <div style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>加载中…</div>;
+      return <KlineChart data={kdata} height={300} />;
+    }
+
     function CalibrationPage() {
       const [summary, setSummary] = useState({avg_brier:0.18, count:24, accuracy:71});
       const [biasByTarget, setBiasByTarget] = useState([
@@ -1736,6 +1835,7 @@
           case 'review': return <ReviewPage />;
           case 'portfolio': return <PortfolioPage />;
           case 'calibration': return <CalibrationPage />;
+          case 'screen': return <ScreenPage />;
           default: return <DashboardPage onNavigate={setActivePage} />;
         }
       };
