@@ -36,3 +36,4 @@ logs/
 
 # 平台 skill 缓存
 .claude/
+.superpowers/
