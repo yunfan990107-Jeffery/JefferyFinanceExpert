@@ -315,6 +315,11 @@ def sync(days: int = 2) -> None:
     n5 = sync_concept_fund_flow(conn)
     t5 = time.time() - t5
 
+    # 6. Z哥信号预计算
+    t6 = time.time()
+    n6 = sync_zg_signals(conn)
+    t6 = time.time() - t6
+
     conn.close()
 
     elapsed = time.time() - t_start
@@ -325,6 +330,7 @@ def sync(days: int = 2) -> None:
     print(f"  股票列表: {n3:>6} 只  ({t3:.0f}s)")
     print(f"  概念K线:  {n4:>6} 条  ({t4:.0f}s)")
     print(f"  概念资金: {n5:>6} 条  ({t5:.0f}s)")
+    print(f"  Z哥信号:  {n6:>6} 条  ({t6:.0f}s)")
 
 
 def main() -> None:
@@ -332,6 +338,32 @@ def main() -> None:
     parser.add_argument("--days", type=int, default=2, help="同步最近 N 天（默认2，覆盖周末+假期）")
     args = parser.parse_args()
     sync(args.days)
+
+
+def sync_zg_signals(conn: sqlite3.Connection) -> int:
+    """预计算 Z 哥 7 个策略规则，写入 zg_signals 表。"""
+    from core.zg_screen import SCREENERS
+    conn.execute("""CREATE TABLE IF NOT EXISTS zg_signals (
+        code TEXT NOT NULL, rule_name TEXT NOT NULL, score REAL,
+        details TEXT, date TEXT NOT NULL,
+        PRIMARY KEY (code, rule_name, date))""")
+    codes = [r[0] for r in conn.execute(
+        "SELECT DISTINCT code FROM daily_k WHERE code NOT GLOB '399*' ORDER BY code").fetchall()]
+    today = date.today().isoformat()
+    total = 0
+    for code in codes:
+        for rule_name, screener in SCREENERS.items():
+            try:
+                result = screener(code)
+                if result and result.get("hit"):
+                    conn.execute(
+                        "INSERT OR REPLACE INTO zg_signals VALUES (?,?,?,?,?)",
+                        (code, rule_name, result["score"], result.get("details", ""), today))
+                    total += 1
+            except Exception:
+                pass
+    conn.commit()
+    return total
 
 
 if __name__ == "__main__":

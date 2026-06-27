@@ -355,6 +355,63 @@ def concept_fund_flow(concept_code: str = "", limit: int = 30):
     return {"data": result}
 
 
+@app.post("/api/screen")
+def zg_screen(body: dict):
+    """Z 哥选股检索。body: {rules: ["B1","红砖"]}"""
+    rules = body.get("rules", [])
+    if not rules:
+        return {"data": []}
+    import sqlite3
+    from pathlib import Path
+    db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
+    conn = sqlite3.connect(str(db))
+    placeholders = ",".join("?" for _ in rules)
+    rows = conn.execute(
+        f"SELECT code, rule_name, score, details FROM zg_signals "
+        f"WHERE rule_name IN ({placeholders}) AND date=(SELECT MAX(date) FROM zg_signals) "
+        f"ORDER BY code",
+        rules,
+    ).fetchall()
+    conn.close()
+    from collections import defaultdict
+    merged = defaultdict(lambda: {"rules": [], "scores": {}, "details": {}})
+    for r in rows:
+        code, rule, score, det = r[0], r[1], r[2], r[3]
+        merged[code]["rules"].append(rule)
+        merged[code]["scores"][rule] = score
+        merged[code]["details"][rule] = det
+    return {"data": [{"code": c, "rules": v["rules"], "scores": v["scores"], "details": v["details"]} for c, v in sorted(merged.items())]}
+
+
+@app.get("/api/zg/{code}")
+def zg_analysis(code: str):
+    """个股 Z 哥战法分析。"""
+    from core.zg_indicators import dual_line_status, calc_kdj, calc_macd, calc_brick, brick_signal, calc_deep_v, deep_v_signal, trend_status
+    import sqlite3, pandas as pd
+    from pathlib import Path
+    db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
+    conn = sqlite3.connect(str(db))
+    rows = conn.execute("SELECT date, open, high, low, close, volume FROM daily_k WHERE code=? ORDER BY date", (code,)).fetchall()
+    conn.close()
+    if len(rows) < 60:
+        return {"data": {"error": "数据不足"}}
+    df = pd.DataFrame(rows, columns=["date", "open", "high", "low", "close", "volume"])
+    c, h, l = df["close"], df["high"], df["low"]
+    dual = dual_line_status(c)
+    kdj = calc_kdj(h, l, c)
+    macd = calc_macd(c)
+    yl = float(dual["yl"])
+    brick = brick_signal(h, l, c, yl)
+    dv = deep_v_signal(h, l, c)
+    trend = trend_status(c)
+    return {"data": {
+        "code": code, "dual_line": dual,
+        "kdj": {"k": round(float(kdj["K"].iloc[-1]), 2), "d": round(float(kdj["D"].iloc[-1]), 2), "j": round(float(kdj["J"].iloc[-1]), 2)},
+        "macd": {"dif": round(float(macd["DIF"].iloc[-1]), 2), "dea": round(float(macd["DEA"].iloc[-1]), 2), "bar": round(float(macd["MACD"].iloc[-1]), 2)},
+        "brick": brick, "deep_v": dv, "trend": trend["trend"], "trend_label": trend["trend_label"],
+    }}
+
+
 # ═══════════════════════════════════════════════════════════════════
 # 健康检查
 # ═══════════════════════════════════════════════════════════════════
