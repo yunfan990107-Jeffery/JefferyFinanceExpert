@@ -1567,82 +1567,117 @@
 
     // ═══ PORTFOLIO ═══
     function PortfolioPage() {
-      const [positions, setPositions] = useState([
-        {name:'贵州茅台',code:'600519',cost:1680,current_price:1935.2,weight_pct:28.5,pnl_pct:15.19,pnl_amount:55120},
-        {name:'宁德时代',code:'300750',cost:218.5,current_price:211.08,weight_pct:22.1,pnl_pct:-3.40,pnl_amount:-9650},
-        {name:'中芯国际',code:'688981',cost:52.3,current_price:56.86,weight_pct:18.3,pnl_pct:8.72,pnl_amount:20480},
-        {name:'比亚迪',code:'002594',cost:265,current_price:275.87,weight_pct:15.6,pnl_pct:4.10,pnl_amount:8220},
-        {name:'招商银行',code:'600036',cost:35.2,current_price:35.83,weight_pct:8.2,pnl_pct:1.79,pnl_amount:1880},
-      ]);
-      const [concentration, setConcentration] = useState({top_name:'茅台',top_pct:28.5});
-      const [totalPnl, setTotalPnl] = useState({value:0, pct:0});
+  const [data,setData]=useState(null);const [adjust,setAdjust]=useState(null);
+  const load=async()=>{const r=await apiFetch('/api/portfolio');if(r)setData(r);};
+  useEffect(()=>{load();},[]);
+  const doAdd=async(e)=>{e.preventDefault();const f=new FormData(e.target);await apiFetch('/api/portfolio/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:f.get('code'),name:f.get('name'),type:f.get('type'),category:f.get('cat'),cost:parseFloat(f.get('cost')),quantity:parseFloat(f.get('qty'))})});load();e.target.reset();};
+  const doAdjust=async()=>{if(!adjust)return;await apiFetch('/api/portfolio/adjust/'+adjust.id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:adjust.action,quantity:adjust.quantity,price:adjust.price})});setAdjust(null);load();};
+  const doDelete=async(id)=>{if(!confirm('确认删除？'))return;await apiFetch('/api/portfolio/'+id,{method:'DELETE'});load();};
+  if(!data)return React.createElement('div',null,'加载中…');
+  const s=data.summary||{};
 
-      useEffect(() => {
-        (async () => {
-          const pfData = await apiFetch('/api/portfolio');
-          if (pfData && pfData.positions && pfData.positions.length) {
-            setPositions(pfData.positions.map(p => ({
-              name: p.name || '',
-              code: p.code || '',
-              cost: p.cost || 0,
-              current_price: p.current_price || 0,
-              weight_pct: p.weight_pct || 0,
-              pnl_pct: p.pnl_pct || 0,
-              pnl_amount: p.pnl_amount || 0,
-            })));
-            if (pfData.concentration && pfData.concentration.length) {
-              const top = pfData.concentration[0];
-              setConcentration({top_name: top.name, top_pct: top.weight_pct});
-            }
-            setTotalPnl({value: pfData.total_pnl || 0, pct: pfData.total_pnl_pct || 0});
-          }
-        })();
-      }, []);
+  return React.createElement('div',null,
+    React.createElement('div',{className:'card',style:{marginBottom:12}},
+      React.createElement('div',{style:{fontSize:10,color:'var(--muted)',marginBottom:8}},'收益概览'),
+      React.createElement('div',{style:{display:'flex',gap:24}},
+        React.createElement(Stat,{label:'累计收益率',val:(s.total_pnl_pct||0).toFixed(2)+'%',color:s.total_pnl_pct>=0?'var(--up)':'var(--down)'}),
+        React.createElement(Stat,{label:'总市值',val:'¥'+((s.total_value||0)/10000).toFixed(1)+'万'}),
+        React.createElement(Stat,{label:'总成本',val:'¥'+((s.total_cost||0)/10000).toFixed(1)+'万'}),
+        React.createElement(Stat,{label:'累计盈亏',val:(s.total_pnl>=0?'+':'')+'¥'+Math.abs(s.total_pnl||0).toLocaleString(),color:s.total_pnl>=0?'var(--up)':'var(--down)'})
+      )
+    ),
+    React.createElement('div',{className:'card',style:{marginBottom:12}},
+      React.createElement('div',{style:{fontSize:10,color:'var(--muted)',marginBottom:8}},'当前持仓'),
+      React.createElement('table',{style:{width:'100%',fontSize:12}},
+        React.createElement('thead',null,React.createElement('tr',{style:{color:'var(--muted)',textAlign:'left'}},
+          React.createElement('th',{style:{padding:'4px 8px'}},'类型'),
+          React.createElement('th',{style:{padding:'4px 8px'}},'标的'),
+          React.createElement('th',{style:{padding:'4px 8px'}},'成本'),
+          React.createElement('th',{style:{padding:'4px 8px'}},'持仓'),
+          React.createElement('th',{style:{padding:'4px 8px'}},'现价'),
+          React.createElement('th',{style:{padding:'4px 8px'}},'市值'),
+          React.createElement('th',{style:{padding:'4px 8px'}},'盈亏'),
+          React.createElement('th',{padding:'0px 8px'})
+        )),
+        React.createElement('tbody',null,(data.positions||[]).map(p=>
+          React.createElement('tr',{key:p.id,style:{borderBottom:'1px solid rgba(37,42,54,0.5)'}},
+            React.createElement('td',{style:{padding:'4px 8px'}},React.createElement(Tag,null,p.category)),
+            React.createElement('td',{style:{padding:'4px 8px'}},
+              React.createElement('span',{style:{color:'var(--amber)'}},p.code||p.name),
+              React.createElement('span',{style:{fontSize:10,color:'var(--muted)'}},p.code?' '+p.name:'')
+            ),
+            React.createElement('td',{style:{padding:'4px 8px',fontFamily:'var(--font-mono)',fontSize:11}},p.cost?p.cost.toFixed(2):'—'),
+            React.createElement('td',{style:{padding:'4px 8px',fontFamily:'var(--font-mono)',fontSize:11}},p.quantity+p.unit),
+            React.createElement('td',{style:{padding:'4px 8px',fontFamily:'var(--font-mono)',fontSize:11}},p.close?p.close.toFixed(2):'—'),
+            React.createElement('td',{style:{padding:'4px 8px',fontFamily:'var(--font-mono)',fontSize:11}},p.market_value?p.market_value.toLocaleString():'—'),
+            React.createElement('td',{style:{padding:'4px 8px',fontFamily:'var(--font-mono)',fontSize:11,color:p.pnl_pct>=0?'var(--up)':'var(--down)'}},(p.pnl_pct>=0?'+':'')+(p.pnl_pct?p.pnl_pct.toFixed(1):'0')+'%'),
+            React.createElement('td',{style:{padding:'4px 8px'}},
+              React.createElement('button',{onClick:()=>setAdjust({id:p.id,name:p.name,action:'buy',quantity:0,price:0}),style:{border:'none',background:'var(--primary)',color:'#fff',borderRadius:3,marginRight:3,padding:'3px 7px',fontSize:10,cursor:'pointer'}},'+'),
+              React.createElement('button',{onClick:()=>setAdjust({id:p.id,name:p.name,action:'sell',quantity:0,price:0}),style:{border:'1px solid rgba(239,68,68,0.3)',color:'var(--down)',background:'transparent',borderRadius:3,marginRight:3,padding:'3px 7px',fontSize:10,cursor:'pointer'}},'-'),
+              React.createElement('button',{onClick:()=>doDelete(p.id),style:{border:'none',background:'transparent',color:'#444',cursor:'pointer',fontSize:12}},'✕')
+            )
+          )
+        ))
+      )
+    ),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}},
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{style:{fontSize:10,color:'var(--muted)',marginBottom:8}},'目标 vs 实际'),
+        (data.targets||[]).map(t=>
+          React.createElement('div',{key:t.category,style:{marginBottom:10}},
+            React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:2}},
+              React.createElement('span',null,React.createElement(Tag,null,t.category),' ',t.category),
+              React.createElement('span',{style:{fontFamily:'var(--font-mono)',fontSize:10}},t.actual_pct+'% / '+t.target_pct+'% ',
+                React.createElement('span',{style:{color:Math.abs(t.diff)>10?'var(--down)':'var(--muted)'}},(t.diff>=0?'+':'')+t.diff+'%')
+              )
+            ),
+            React.createElement('div',{style:{height:6,borderRadius:3,background:'var(--border)',position:'relative'}},
+              React.createElement('div',{style:{height:6,borderRadius:3,background:'var(--primary)',width:t.actual_pct+'%',position:'absolute'}}),
+              React.createElement('div',{style:{position:'absolute',left:t.target_pct+'%',top:-2,width:2,height:10,background:'var(--amber)',borderRadius:1}})
+            )
+          )
+        )
+      ),
+      React.createElement('div',{className:'card'},
+        React.createElement('div',{style:{fontSize:10,color:'var(--muted)',marginBottom:8}},'新增持仓'),
+        React.createElement('form',{onSubmit:doAdd,style:{display:'flex',flexDirection:'column',gap:8}},
+          React.createElement('div',{style:{display:'flex',gap:8}},
+            React.createElement('select',{name:'type',style:{background:'#0B0E14',border:'1px solid var(--border)',color:'var(--text)',padding:'5px 8px',borderRadius:4,fontSize:11}},
+              React.createElement('option',null,'股票'),React.createElement('option',null,'ETF'),React.createElement('option',null,'黄金'),React.createElement('option',null,'债券'),React.createElement('option',null,'现金')),
+            React.createElement('input',{name:'code',placeholder:'代码',style:{background:'#0B0E14',border:'1px solid var(--border)',color:'var(--text)',padding:'5px 8px',borderRadius:4,fontSize:11,flex:1}}),
+            React.createElement('input',{name:'name',placeholder:'名称',style:{background:'#0B0E14',border:'1px solid var(--border)',color:'var(--text)',padding:'5px 8px',borderRadius:4,fontSize:11,flex:1}})
+          ),
+          React.createElement('div',{style:{display:'flex',gap:8}},
+            React.createElement('select',{name:'cat',style:{background:'#0B0E14',border:'1px solid var(--border)',color:'var(--text)',padding:'5px 8px',borderRadius:4,fontSize:11}},
+              React.createElement('option',null,'进攻'),React.createElement('option',null,'黄金'),React.createElement('option',null,'红利低波'),React.createElement('option',null,'现金')),
+            React.createElement('input',{name:'cost',placeholder:'成本价',type:'number',step:'any',style:{background:'#0B0E14',border:'1px solid var(--border)',color:'var(--text)',padding:'5px 8px',borderRadius:4,fontSize:11,flex:1}}),
+            React.createElement('input',{name:'qty',placeholder:'数量',type:'number',step:'any',style:{background:'#0B0E14',border:'1px solid var(--border)',color:'var(--text)',padding:'5px 8px',borderRadius:4,fontSize:11,flex:1}}),
+            React.createElement('button',{type:'submit',style:{background:'var(--primary)',color:'#fff',border:'none',padding:'6px 14px',borderRadius:4,fontSize:11,cursor:'pointer',flex:0.6}},'新增')
+          )
+        )
+      )
+    ),
+    adjust?React.createElement('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100},onClick:()=>setAdjust(null)},
+      React.createElement('div',{style:{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:16,minWidth:300},onClick:e=>e.stopPropagation()},
+        React.createElement('div',{style:{marginBottom:10}},'调整 '+adjust.name),
+        React.createElement('div',{style:{display:'flex',gap:8,marginBottom:10}},
+          React.createElement('select',{value:adjust.action,onChange:e=>setAdjust({...adjust,action:e.target.value}),style:{background:'#0B0E14',border:'1px solid #252A36',color:'#E6E8EC',padding:'5px 8px',borderRadius:4,fontSize:11}},
+            React.createElement('option',{value:'buy'},'买入'),React.createElement('option',{value:'sell'},'卖出')),
+          React.createElement('input',{type:'number',placeholder:'数量',value:adjust.quantity||'',onChange:e=>setAdjust({...adjust,quantity:parseFloat(e.target.value)||0}),style:{background:'#0B0E14',border:'1px solid #252A36',color:'#E6E8EC',padding:'5px 8px',borderRadius:4,fontSize:11,flex:1}}),
+          React.createElement('input',{type:'number',placeholder:'价格',value:adjust.price||'',onChange:e=>setAdjust({...adjust,price:parseFloat(e.target.value)||0}),style:{background:'#0B0E14',border:'1px solid #252A36',color:'#E6E8EC',padding:'5px 8px',borderRadius:4,fontSize:11,flex:1}})
+        ),
+        React.createElement('div',{style:{display:'flex',gap:8,justifyContent:'flex-end'}},
+          React.createElement('button',{onClick:()=>setAdjust(null),style:{background:'transparent',border:'1px solid #252A36',color:'#7A8290',padding:'6px 14px',borderRadius:4,fontSize:11,cursor:'pointer'}},'取消'),
+          React.createElement('button',{onClick:doAdjust,style:{background:'var(--primary)',color:'#fff',border:'none',padding:'6px 14px',borderRadius:4,fontSize:11,cursor:'pointer'}},'确认')
+        )
+      )
+    ):null
+  );
+}
+function Stat({label,val,color}){return React.createElement("div",{style:{flex:1}},React.createElement("div",{style:{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:700,color:color||"var(--text)"}},val),React.createElement("div",{style:{fontSize:10,color:"var(--muted)"}},label));}
+function Tag({category:c}){var m={进攻:"tag-attack",黄金:"tag-gold",红利低波:"tag-dividend",现金:"tag-cash"};return React.createElement("span",{className:"tag "+(m[c]||""),style:{display:"inline-block",padding:"1px 6px",borderRadius:3,fontSize:9}},c);}
 
-      const fmtMoney = (v) => v >= 0 ? `+¥ ${v.toLocaleString()}` : `-¥ ${Math.abs(v).toLocaleString()}`;
-
-      return (
-        <div>
-          <div className="page-header">
-            <h2>持仓看板</h2>
-            <div className="page-header-actions"><button className="btn btn-primary">添加持仓</button></div>
-          </div>
-          <div className="card" style={{marginBottom:16}}>
-            <div className="card-header">
-              <span className="card-title">当前持仓</span>
-              {concentration.top_pct > 25 && <span style={{fontSize:11,color:'var(--warning)',fontWeight:600,background:'var(--warning-dim)',padding:'3px 8px',borderRadius:'var(--radius-sm)'}}>集中度预警: {concentration.top_name} {concentration.top_pct}%</span>}
-            </div>
-            <table className="data-table">
-              <thead><tr><th>标的</th><th>成本价</th><th>现价</th><th>仓位</th><th>盈亏</th><th>盈亏额</th></tr></thead>
-              <tbody>
-                {positions.map((p, i) => (
-                  <tr key={i}>
-                    <td style={{color:'var(--text)',fontWeight:600}}>{p.name} {p.code}</td>
-                    <td className="mono">{p.cost.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-                    <td className="mono">{p.current_price.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-                    <td className="mono" style={p.weight_pct>25?{color:'var(--warning)'}:{}}>{p.weight_pct}%</td>
-                    <td className={`mono ${p.pnl_pct>=0?'up':'down'}`}>{p.pnl_pct>=0?'+':''}{p.pnl_pct}%</td>
-                    <td className={`mono ${p.pnl_amount>=0?'up':'down'}`}>{fmtMoney(p.pnl_amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="card">
-            <div className="card-header"><span className="card-title">绩效归因 (判断 × 执行)</span></div>
-            <div className="attribution-grid">
-              <div className="attribution-cell"><div className="cell-label">判断对 + 执行对</div><div className="cell-value" style={{color:'var(--up)'}}>3</div></div>
-              <div className="attribution-cell"><div className="cell-label">判断对 + 执行差</div><div className="cell-value" style={{color:'var(--warning)'}}>1</div></div>
-              <div className="attribution-cell"><div className="cell-label">判断错 + 运气好</div><div className="cell-value" style={{color:'var(--primary)'}}>1</div></div>
-              <div className="attribution-cell"><div className="cell-label">一致亏损</div><div className="cell-value" style={{color:'var(--down)'}}>2</div></div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ═══ CALIBRATION ═══
-    function ScreenPage() {
+function ScreenPage() {
       const [rules, setRules] = useState({ B1: false, 红砖: false, B1宽松: false, 周线B1: false, B2: false, Tepu: false, 单针: false });
       const [results, setResults] = useState(null);
       const [loading, setLoading] = useState(false);
