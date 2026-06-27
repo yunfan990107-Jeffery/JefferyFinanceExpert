@@ -421,7 +421,79 @@ def zg_analysis(code: str):
         "kdj": {"k": round(float(kdj["K"].iloc[-1]), 2), "d": round(float(kdj["D"].iloc[-1]), 2), "j": round(float(kdj["J"].iloc[-1]), 2)},
         "macd": {"dif": round(float(macd["DIF"].iloc[-1]), 2), "dea": round(float(macd["DEA"].iloc[-1]), 2), "bar": round(float(macd["MACD"].iloc[-1]), 2)},
         "brick": brick, "deep_v": dv, "trend": trend["trend"], "trend_label": trend["trend_label"],
-    }}
+	    }}
+
+
+from core.portfolio import init_tables as _init_pt, get_portfolio as _get_pt
+
+_init_pt()
+
+
+@app.get("/api/portfolio")
+def portfolio_get():
+    return {"data": _get_pt()}
+
+
+@app.post("/api/portfolio/add")
+def portfolio_add(body: dict):
+    import sqlite3
+    from pathlib import Path
+    db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
+    c = sqlite3.connect(str(db))
+    c.execute(
+        "INSERT INTO portfolio_positions (code,name,type,category,cost,quantity,unit,created_at,updated_at) VALUES (?,?,?,?,?,?,?,date('now'),date('now'))",
+        (body.get("code", ""), body.get("name"), body.get("type"), body.get("category"),
+         body.get("cost"), body.get("quantity"), body.get("unit", "股")),
+    )
+    c.commit(); c.close()
+    return {"ok": True}
+
+
+@app.post("/api/portfolio/adjust/{pid}")
+def portfolio_adjust(pid: int, body: dict):
+    import sqlite3
+    from pathlib import Path
+    db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
+    c = sqlite3.connect(str(db))
+    row = c.execute("SELECT quantity, cost FROM portfolio_positions WHERE id=?", (pid,)).fetchone()
+    if not row:
+        c.close(); return {"ok": False, "error": "not found"}
+    old_qty, old_cost = row
+    action = body.get("action", "buy")
+    qty = body.get("quantity", 0)
+    price = body.get("price", 0)
+    if action == "buy":
+        new_qty = old_qty + qty
+        new_cost = (old_cost * old_qty + price * qty) / new_qty if new_qty else old_cost
+    else:
+        new_qty = max(0, old_qty - qty)
+        new_cost = old_cost
+    c.execute("UPDATE portfolio_positions SET quantity=?, cost=?, updated_at=date('now') WHERE id=?", (new_qty, new_cost, pid))
+    c.commit(); c.close()
+    return {"ok": True}
+
+
+@app.delete("/api/portfolio/{pid}")
+def portfolio_delete(pid: int):
+    import sqlite3
+    from pathlib import Path
+    db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
+    c = sqlite3.connect(str(db))
+    c.execute("DELETE FROM portfolio_positions WHERE id=?", (pid,))
+    c.commit(); c.close()
+    return {"ok": True}
+
+
+@app.put("/api/portfolio/targets")
+def portfolio_targets(body: dict):
+    import sqlite3
+    from pathlib import Path
+    db = Path(__file__).resolve().parent.parent / "data" / "market_data.sqlite"
+    c = sqlite3.connect(str(db))
+    for cat, pct in body.items():
+        c.execute("INSERT OR REPLACE INTO portfolio_targets VALUES (?,?)", (cat, pct))
+    c.commit(); c.close()
+    return {"ok": True}
 
 
 # ═══════════════════════════════════════════════════════════════════
