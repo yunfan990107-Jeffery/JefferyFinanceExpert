@@ -6,63 +6,60 @@
 
 PrivateFinanceExpert — 个人 A 股 AI 投资分析系统。不自动下单，只做研究支持。
 
-## 当前状态（2026-06-25 上午）
+## 当前状态（2026-06-27 晚间）
 
-### ✅ 已完成
+### ✅ 已完成（7 大模块）
 
-- **K 线数据库**：`data/market_data.sqlite`，5202 只 A 股，182 万行日线（2025-01 ~ 今），通过通达信 pytdx 拉取
-- **概念板块数据库**：361 个概念板块 + 成分股 + K 线 + 资金流
-- **K 线图表**：React SPA 多图层架构（蜡烛图 + MA5/10/20/60 + 成交量 + MACD/KDJ 切换）
-- **后端 API**：FastAPI 12+ 个端点，含概念板块查询
+| 模块 | 说明 |
+|------|------|
+| K 线数据库 | 5202 只 A 股 + 6 指数，182 万行日线，通达信 pytdx TCP 直连 |
+| 概念板块 | 361 概念 + 成分股 + K 线 + 资金流，同花顺 10jqka 源 |
+| K 线图表 | LW Charts 原生渲染，蜡烛图+MA+成交量+MACD/KDJ，十字光标+缩放平移 |
+| 指数行情 | 6 大指数实时K线（上证/深证/创业板/科创50/沪深300/上证50） |
+| Z 哥选股 | 7 个策略筛选器 + 预计算信号 + ScreenPage 条件检索页面 |
+| 持仓看板 | 收益概览+持仓表格+目标偏离+新增/调整/删除，SQLite 存储 |
+| 日更系统 | `sync_daily.py` 增量同步个股/指数/概念/资金流/Z哥信号 |
 
 ### ⚠️ 已知问题
 
 | 问题 | 详情 |
 |------|------|
-| K 线图间距不均 | Chart.js category scale 按日期当标签，周末留空。方案：改线性索引 + `chartjs-plugin-zoom` |
-| K 线图无缩放/平移 | 用户要滚轮缩放 + 拖拽平移。方案 C（Lightweight Charts）已推荐，待用户确认 |
-| 概念成分股偏少 | 平均每只股 2.2 个概念，10jqka 分页限制待排查 |
-| 后端进程不稳定 | uvicorn background task 超时被杀，需手动 `python -m uvicorn api.main:app --port 8000` |
-
-### 🔲 待确认
-
-- K 线图交互方案（方案 A: chartjs-plugin-zoom / C: Lightweight Charts）
+| 概念成分股偏少 | 每只股票平均 2.2 个概念，10jqka 分页限制待排查 |
+| Portfolio 飞书集成 | 旧飞书版 portfolio 端点已删，现在是纯 SQLite 版本 |
+| 搜索代码前缀 | stock_list 表有 sh/sz 前缀，部分 JOIN 需手动去前缀 |
+| Babel 兼容 | `let` 顶层变量 + 函数默认数组参数会触发 Babel bug，避免即可 |
 
 ## 架构速览
 
 ```
-web/index.html      ← React SPA（单文件，CDN 加载，约 1700 行）
-api/main.py          ← FastAPI 薄接口层（12+ 端点，CORS 开）
-core/                ← 业务逻辑（data_fetcher / feishu_client / calibration / portfolio / llm_client）
-scripts/             ← 建库脚本
-  build_kline_db.py      ← 通达信 pytdx → SQLite（--years 2 --workers 4，约 3 分钟）
-  build_concept_db.py    ← 同花顺 10jqka → SQLite（--years 2，约 7 分钟）
-data/                ← SQLite 数据库（不入 Git）
-  market_data.sqlite     ← daily_k / stock_concept / concept_kline / concept_fund_flow
-docs/
-  AI_CONTEXT.md          ← 本文件（新 AI 先读）
-  DEVLOG.md              ← 人类可读开发日志
-  CHANGELOG.md           ← 面向 AI 的详细变更日志
+web/index.html      ← React SPA（单文件 ~1900 行，CDN 加载）
+  ├─ <script>         纯 JS：renderKlineChart (LW Charts)
+  └─ <script babel>   React：Dashboard/Research/Screen/Portfolio/...
+api/main.py          ← FastAPI（20+ 端点）
+core/                ← 业务逻辑
+  ├─ data_fetcher.py    ← K线/价格/概念查询
+  ├─ portfolio.py      ← 持仓计算（收益+目标偏离）
+  ├─ zg_indicators.py  ← Z哥指标（白线/黄线/砖型/KDJ/MACD）
+  ├─ zg_screen.py      ← 7 个策略筛选器
+  └─ zg_config.py      ← Z哥参数
+scripts/
+  ├─ build_kline_db.py    ← 通达信 pytdx → SQLite（--years 2, 3分钟）
+  ├─ build_concept_db.py  ← 同花顺 10jqka → SQLite（--years 2, 7分钟）
+  └─ sync_daily.py        ← 每日增量同步（--days 1, ~90秒）
+data/market_data.sqlite ← 不入 Git（daily_k/stock_concept/concept_kline/zg_signals/portfolio_*）
 ```
 
 ## 快速启动
 
 ```bash
 cd C:\Users\Jeffery\私人文件\Agent\JefferyFinanceExpert
+source .venv/Scripts/activate
 
-# 激活虚拟环境
-source .venv/Scripts/activate   # Git Bash
+# 后端（守护进程，不会被杀）
+python -c "import subprocess;subprocess.Popen(['.venv\\Scripts\\python.exe','-m','uvicorn','api.main:app','--port','8000'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,close_fds=True)"
 
-# 构建 K 线数据库（如已构建则跳过）
-python scripts/build_kline_db.py --years 2 --workers 4
-
-# 构建概念板块数据库（如已构建则跳过）
-python scripts/build_concept_db.py --years 2
-
-# 启动后端
-python -m uvicorn api.main:app --port 8000
-
-# 启动前端（另一个终端）
+# 前端（3000 端口）
+cmd //c "taskkill /F /IM node.exe 2>nul" 2>&1
 npx serve web -l 3000 --no-clipboard
 ```
 
@@ -70,42 +67,27 @@ npx serve web -l 3000 --no-clipboard
 
 | 用途 | 首选 | 备选 | 状态 |
 |------|------|------|:--:|
-| 股票 K 线 | 通达信 pytdx (TCP) | Baostock（被封） | ✅ |
-| 概念板块 | 同花顺 10jqka | 东方财富（被封） | ✅ |
-| 股票实时价 | Sina spot | AkShare（不稳定） | ✅ |
+| 个股K线 | 通达信 pytdx (TCP) | — | ✅ |
+| 指数K线 | 通达信 get_index_bars | — | ✅ |
+| 概念板块 | 同花顺 10jqka | — | ✅ |
+| 实时价 | 通达信 + daily_k | Sina | ✅ |
 | 板块资金流 | 同花顺 data.10jqka.com.cn | — | ✅ |
 
 ## Git 注意
 
-- **Remote 是 SSH**：`git@github.com:yunfan990107-Jeffery/JefferyFinanceExpert.git`
-- 本机 HTTPS 不通（443 被墙），SSH 密钥在 `~/.ssh/id_ed25519`
-- `data/`、`.env`、`cache/` 不入 Git
-- 开发环境：Windows 11, Git Bash, Python 3.13 (Miniconda3), Node via npx
-
-## 代码约定
-
-- Python：`core/` 层纯函数优先，不依赖 UI
-- 前端：React 18 CDN + Chart.js 4.4 + Babel Standalone，单文件 `web/index.html`
-- 新增功能按 `brainstorming → writing-plans → implementing` 流程
-- 日志：变更记录写入 `CHANGELOG.md`，简要写入 `docs/DEVLOG.md`
-- 扩展 K 线指标：实现 `render` 函数 + 加入 `layers` 数组 + 加切换按钮，不改 KlineChart 主体
+- **SSH remote**：`git@github.com:yunfan990107-Jeffery/JefferyFinanceExpert.git`
+- 密钥：`~/.ssh/id_ed25519`
+- 本机 HTTPS 不通（443 被墙）
+- `data/` `.env` `.claude/` `.superpowers/` 不入 Git
+- Windows 11, Git Bash, Python 3.13 (Miniconda3)
 
 ## 红线
 
-- **不要改 `core/` 已定义的函数签名与 `FeishuClient` 方法签名**
+- 不要改 `core/` 已定义的函数签名
 - 不写任何真实下单/交易执行代码
-- 不提交 `.env` 或任何密钥
-- LLM 调用统一走 `core/llm_client.chat()`，不要自己写 requests
-
-## LLM 调用
-
-```
-llm_client.chat(system_prompt, user_prompt) → str     # 通用调用
-llm_client.load_role("devil_advocate.md") → str       # 加载角色提示词
-```
-DeepSeek（OpenAI 兼容），配置在 `.env`。未配置 key 时自动降级，不报错。
-
-## 飞书资源
-
-所有文档与多维表格挂入知识库 `space_id=7652969095092014047`，不在个人空间。
-数据表位置：https://qcnsl9sevuhc.feishu.cn/wiki/QLDOw8ehRiypsRkemrVcNIFQnvd
+- 不提交 `.env` 或密钥
+- 新增功能按 brainstorming → writing-plans → TDD → verify 流程
+- 遇到 BUG 先用 systematic-debugging，不要猜
+- KlineChart 用 `var` 不用 `const`（Babel 兼容）
+- 不要在顶层用 `let`（Babel 兼容）
+- 不要用默认数组参数（Babel 兼容）
