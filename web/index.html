@@ -639,6 +639,91 @@
 <body>
   <div id="root"></div>
 
+  <script>
+    // LW Charts 渲染引擎（独立脚本，避免 Babel Standalone 兼容性问题）
+    function renderKlineChart(container, data, mp, si, h) {
+      var lw = window.LightweightCharts;
+      if (!lw || !container || !data || !data.length) return;
+
+      // 清理旧图表
+      container.innerHTML = '';
+
+      var cd = data.map(function(d) { return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close }; });
+      var vd = data.map(function(d) { return { time: d.date, value: d.volume || 0, color: d.close >= d.open ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)' }; });
+      var mc = { 5: '#9CA3AF', 10: '#F59E0B', 20: '#3B82F6', 60: '#8B5CF6' };
+
+      // 主图
+      var mainChart = lw.createChart(container, {
+        layout: { background: { color: 'transparent' }, textColor: '#8892A8' },
+        grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
+        crosshair: { mode: 1, vertLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' }, horzLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' } },
+        rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)', autoScale: true, scaleMargins: { top: 0.05, bottom: 0.05 } },
+        timeScale: { borderColor: 'rgba(99,130,255,0.15)', timeVisible: false, barSpacing: 8, minBarSpacing: 2, rightOffset: 5 },
+        width: container.clientWidth, height: Math.round(h * 0.60),
+      });
+      mainChart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true });
+      mainChart.addCandlestickSeries({ upColor: '#10B981', downColor: '#EF4444', borderUpColor: '#10B981', borderDownColor: '#EF4444', wickUpColor: '#10B981', wickDownColor: '#EF4444' }).setData(cd);
+
+      // MA 线
+      for (var pi = 0; pi < mp.length; pi++) {
+        var p = mp[pi];
+        var maVals = [];
+        for (var i = p - 1; i < data.length; i++) { var sum = 0; for (var j = i - p + 1; j <= i; j++) sum += data[j].close; maVals.push({ time: data[i].date, value: sum / p }); }
+        if (maVals.length) mainChart.addLineSeries({ color: mc[p], lineWidth: 1, lastValueVisible: false }).setData(maVals);
+      }
+
+      // 成交量
+      var volDiv = document.createElement('div');
+      volDiv.style.width = '100%'; volDiv.style.height = Math.round(h * 0.15) + 'px';
+      container.appendChild(volDiv);
+      var volChart = lw.createChart(volDiv, {
+        layout: { background: { color: 'transparent' }, textColor: '#8892A8' },
+        grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
+        crosshair: { mode: 1, vertLine: { color: 'rgba(99,130,255,0.2)', style: 2 }, horzLine: { visible: false } },
+        rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)', scaleMargins: { top: 0, bottom: 0 }, visible: false },
+        timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2 }, handleScroll: false, handleScale: false,
+      });
+      volChart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true });
+      volChart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' }).setData(vd);
+      mainChart.timeScale().subscribeVisibleTimeRangeChange(function(range) { if (range) volChart.timeScale().setVisibleRange(range); });
+
+      // MACD/KDJ 副图
+      var subDiv = document.createElement('div');
+      subDiv.style.width = '100%'; subDiv.style.height = Math.round(h * 0.25) + 'px';
+      container.appendChild(subDiv);
+      var subChart = lw.createChart(subDiv, {
+        layout: { background: { color: 'rgba(0,0,0,0.15)' }, textColor: '#8892A8' },
+        grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
+        crosshair: { mode: 1, vertLine: { color: 'rgba(99,130,255,0.2)', style: 2 }, horzLine: { visible: false } },
+        rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)' },
+        timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2 }, handleScroll: false, handleScale: false,
+      });
+      subChart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true });
+      mainChart.timeScale().subscribeVisibleTimeRangeChange(function(range) { if (range) subChart.timeScale().setVisibleRange(range); });
+
+      // 绘制 MACD 或 KDJ
+      if (window._calcMACD && window._calcKDJ) {
+        var subData = si === 'macd' ? window._calcMACD(data) : window._calcKDJ(data);
+        if (si === 'macd' && subData) {
+          var difLine = subData.dif.map(function(v,i){ return v!=null?{time:data[i].date,value:v}:null; }).filter(Boolean);
+          var deaLine = subData.dea.map(function(v,i){ return v!=null?{time:data[i].date,value:v}:null; }).filter(Boolean);
+          var macdHist = subData.macd.map(function(v,i){ return v!=null?{time:data[i].date,value:v,color:v>=0?'rgba(16,185,129,0.6)':'rgba(239,68,68,0.6)'}:null; }).filter(Boolean);
+          subChart.addLineSeries({ color: '#3B82F6', lineWidth: 1 }).setData(difLine);
+          subChart.addLineSeries({ color: '#F59E0B', lineWidth: 1 }).setData(deaLine);
+          subChart.addHistogramSeries({ priceScaleId: '' }).setData(macdHist);
+        } else if (si === 'kdj' && subData) {
+          subChart.addLineSeries({ color: '#3B82F6', lineWidth: 1 }).setData(subData.k.map(function(v,i){ return v!=null?{time:data[i].date,value:v}:null; }).filter(Boolean));
+          subChart.addLineSeries({ color: '#F59E0B', lineWidth: 1 }).setData(subData.d.map(function(v,i){ return v!=null?{time:data[i].date,value:v}:null; }).filter(Boolean));
+          subChart.addLineSeries({ color: '#8B5CF6', lineWidth: 1 }).setData(subData.j.map(function(v,i){ return v!=null?{time:data[i].date,value:v}:null; }).filter(Boolean));
+        }
+      }
+      mainChart.timeScale().fitContent();
+    }
+    // 暴露指标计算函数（编译后可用）
+    window._calcMACD = null;
+    window._calcKDJ = null;
+  </script>
+
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
@@ -715,9 +800,9 @@
 
     const API_BASE = 'http://localhost:8000';
 
-    async function apiFetch(path, opts = {}) {
+    async function apiFetch(path) {
       try {
-        const resp = await fetch(API_BASE + path, opts);
+        const resp = await fetch(API_BASE + path);
         if (!resp.ok) throw new Error(resp.statusText);
         const json = await resp.json();
         return json.data ?? json;
@@ -744,7 +829,6 @@
       { id: 'record', label: '记判断', icon: 'record', section: '操作' },
       { id: 'review', label: '复盘中心', icon: 'review', section: '操作' },
       { id: 'portfolio', label: '持仓看板', icon: 'portfolio', section: '操作' },
-      { id: 'screen', label: '选股', icon: 'search', section: '操作' },
       { id: 'calibration', label: '校准报告', icon: 'calibration', section: '提升' },
     ];
 
@@ -789,9 +873,10 @@
       {name:'深证成指',code:'399001',price:10892.31,change_pct:1.12,market:'A股'},
       {name:'创业板指',code:'399006',price:2187.45,change_pct:-0.23,market:'A股'},
       {name:'科创50',code:'000688',price:1123.78,change_pct:1.56,market:'A股'},
-      {name:'沪深300',code:'000300',price:3856.12,change_pct:0.45,market:'A股'},
-      {name:'上证50',code:'000016',price:2689.34,change_pct:-0.12,market:'A股'},
+      {name:'纳斯达克',code:'IXIC',price:19876.54,change_pct:0.62,market:'海外'},
       {name:'恒生指数',code:'HSI',price:21543.21,change_pct:-0.41,market:'海外'},
+      {name:'日经225',code:'N225',price:38456.78,change_pct:0.35,market:'海外'},
+      {name:'韩国KOSPI',code:'KOSPI',price:2891.34,change_pct:-0.18,market:'海外'},
       {name:'恒生科技',code:'HSTECH',price:5123.67,change_pct:1.28,market:'海外'},
     ];
     const MOCK_OVERVIEW = {up_count:2847,down_count:1892,flat_count:261};
@@ -1128,10 +1213,11 @@
                 ))}
               </div>
             </div>
-            <div>
-              {filteredKline ? <KlineChart data={filteredKline} subIndicator={subIndicator} height={480} /> : (
-                <div style={{height:240,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted)'}}>输入代码搜索，加载K线图</div>
+            <div style={{height:240}}>
+              {filteredKline ? <KlineChart data={filteredKline} layers={['candlestick','ma','volume','macd']} subIndicator={subIndicator} height={360} /> : (
+                <div style={{height:'100%',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--muted)'}}>输入代码搜索，加载K线图</div>
               )}
+            </div>
             {klineData && (
               <div style={{display:'flex',gap:6,marginTop:8}}>
                 <button onClick={()=>setSubIndicator('macd')}
@@ -1187,154 +1273,20 @@
     // ─── MACD/KDJ 副图容器（全局引用，供主图同步时间轴） ───
     let subChartRef = null;
 
-    function KlineChart({ data, maPeriods = [5, 10, 20, 60], subIndicator = 'macd', height = 480 }) {
-      const containerRef = useRef(null);
-      const chartRef = useRef(null);
-      const volumeRef = useRef(null);
-      const subRef = useRef(null);
-
-      const maColors = { 5: '#9CA3AF', 10: '#F59E0B', 20: '#3B82F6', 60: '#8B5CF6' };
-
-      const candleData = useMemo(() => (data || []).map(d => ({
-        time: d.date, open: d.open, high: d.high, low: d.low, close: d.close,
-      })), [data]);
-
-      const volumeData = useMemo(() => (data || []).map(d => ({
-        time: d.date, value: d.volume || 0,
-        color: d.close >= d.open ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)',
-      })), [data]);
-
-      const maLines = useMemo(() => {
-        const result = {};
-        for (const p of maPeriods) {
-          const vals = calcMA(data, p);
-          result[p] = vals.map((v, i) => v != null ? { time: data[i].date, value: v } : null).filter(Boolean);
-        }
-        return result;
-      }, [data, maPeriods]);
-
-      const macdData = useMemo(() => data && data.length > 33 ? calcMACD(data) : null, [data]);
-      const kdjData  = useMemo(() => data && data.length > 9  ? calcKDJ(data, 9) : null, [data]);
-
-      useEffect(() => {
+        // KlineChart — thin wrapper, LW Charts in external script
+    function KlineChart({ data, maPeriods, subIndicator, height }) {
+      var containerRef = useRef(null);
+      var mp = maPeriods || [5, 10, 20, 60];
+      var si = subIndicator || "macd";
+      var h  = height || 480;
+      useEffect(function() {
         if (!containerRef.current || !data || !data.length) return;
-
-        // 清理旧图表
-        if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
-        if (volumeRef.current) { volumeRef.current.remove(); volumeRef.current = null; }
-        if (subRef.current) { subRef.current.remove(); subRef.current = null; }
-
-        const container = containerRef.current;
-        const lw = window.LightweightCharts;
-        if (!lw) return;
-
-        // ── 主图：蜡烛 + MA ──
-        const mainChart = lw.createChart(container, {
-          layout: { background: { color: 'transparent' }, textColor: '#8892A8' },
-          grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
-          crosshair: {
-            mode: 1,
-            vertLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' },
-            horzLine: { color: 'rgba(99,130,255,0.3)', style: 2, labelBackgroundColor: '#1a1f35' },
-          },
-          rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)', autoScale: true, scaleMargins: { top: 0.05, bottom: 0.05 } },
-          timeScale: {
-            borderColor: 'rgba(99,130,255,0.15)', timeVisible: false,
-            barSpacing: 8, minBarSpacing: 2, rightOffset: 5,
-          },
-          width: container.clientWidth,
-          height: Math.round(height * 0.60),
-        });
-        // 限制左右边界
-        mainChart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true });
-
-        const candleSeries = mainChart.addCandlestickSeries({
-          upColor: '#10B981', downColor: '#EF4444', borderUpColor: '#10B981', borderDownColor: '#EF4444',
-          wickUpColor: '#10B981', wickDownColor: '#EF4444',
-        });
-        candleSeries.setData(candleData);
-
-        // MA 线
-        for (const period of maPeriods) {
-          if (maLines[period] && maLines[period].length) {
-            mainChart.addLineSeries({ color: maColors[period], lineWidth: 1, lastValueVisible: false })
-              .setData(maLines[period]);
-          }
-        }
-
-        // ── 成交量副图 ──
-        const volDiv = document.createElement('div');
-        volDiv.style.width = '100%';
-        volDiv.style.height = Math.round(height * 0.15) + 'px';
-        container.appendChild(volDiv);
-
-        const volChart = lw.createChart(volDiv, {
-          layout: { background: { color: 'transparent' }, textColor: '#8892A8' },
-          grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
-          crosshair: { mode: 1, vertLine: { color: 'rgba(99,130,255,0.2)', style: 2 }, horzLine: { visible: false } },
-          rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)', scaleMargins: { top: 0, bottom: 0 }, visible: false },
-          timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2 },
-          handleScroll: false, handleScale: false,
-        });
-        volChart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true });
-        volChart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' }).setData(volumeData);
-        // 同步时间轴
-        mainChart.timeScale().subscribeVisibleTimeRangeChange(range => {
-          if (range) volChart.timeScale().setVisibleRange(range);
-        });
-
-        // ── MACD/KDJ 副图 ──
-        const subDiv = document.createElement('div');
-        subDiv.style.width = '100%';
-        subDiv.style.height = Math.round(height * 0.25) + 'px';
-        container.appendChild(subDiv);
-
-        const subChart = lw.createChart(subDiv, {
-          layout: { background: { color: 'rgba(0,0,0,0.15)' }, textColor: '#8892A8' },
-          grid: { vertLines: { color: 'rgba(99,130,255,0.06)' }, horzLines: { color: 'rgba(99,130,255,0.06)' } },
-          crosshair: { mode: 1, vertLine: { color: 'rgba(99,130,255,0.2)', style: 2 }, horzLine: { visible: false } },
-          rightPriceScale: { borderColor: 'rgba(99,130,255,0.15)' },
-          timeScale: { visible: false, barSpacing: 8, minBarSpacing: 2 },
-          handleScroll: false, handleScale: false,
-        });
-        subChart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true });
-
-        // 同步时间轴
-        mainChart.timeScale().subscribeVisibleTimeRangeChange(range => {
-          if (range) subChart.timeScale().setVisibleRange(range);
-        });
-
-        if (subIndicator === 'macd' && macdData) {
-          const difLine = macdData.dif.map((v, i) => v != null ? { time: data[i].date, value: v } : null).filter(Boolean);
-          const deaLine = macdData.dea.map((v, i) => v != null ? { time: data[i].date, value: v } : null).filter(Boolean);
-          const macdHist = macdData.macd.map((v, i) => v != null ? { time: data[i].date, value: v, color: v >= 0 ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)' } : null).filter(Boolean);
-          subChart.addLineSeries({ color: '#3B82F6', lineWidth: 1 }).setData(difLine);
-          subChart.addLineSeries({ color: '#F59E0B', lineWidth: 1 }).setData(deaLine);
-          subChart.addHistogramSeries({ priceScaleId: '' }).setData(macdHist);
-        } else if (subIndicator === 'kdj' && kdjData) {
-          const kLine = kdjData.k.map((v, i) => v != null ? { time: data[i].date, value: v } : null).filter(Boolean);
-          const dLine = kdjData.d.map((v, i) => v != null ? { time: data[i].date, value: v } : null).filter(Boolean);
-          const jLine = kdjData.j.map((v, i) => v != null ? { time: data[i].date, value: v } : null).filter(Boolean);
-          subChart.addLineSeries({ color: '#3B82F6', lineWidth: 1 }).setData(kLine);
-          subChart.addLineSeries({ color: '#F59E0B', lineWidth: 1 }).setData(dLine);
-          subChart.addLineSeries({ color: '#8B5CF6', lineWidth: 1 }).setData(jLine);
-        }
-
-        mainChart.timeScale().fitContent();
-
-        chartRef.current = mainChart;
-        volumeRef.current = volChart;
-        subRef.current = subChart;
-
-        return () => {
-          if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
-          if (volumeRef.current) { volumeRef.current.remove(); volumeRef.current = null; }
-          if (subRef.current) { subRef.current.remove(); subRef.current = null; }
-        };
-      }, [data, candleData, maLines, volumeData, macdData, kdjData, subIndicator, maPeriods, maColors, height]);
-
-      return <div ref={containerRef} />;
+        renderKlineChart(containerRef.current, data, mp, si, h);
+      }, [data, mp, si, h]);
+      return React.createElement("div", { ref: containerRef, style: { width: "100%" } });
     }
+
+    
 
     function PriceChart({ data }) {
       const canvasRef = useRef(null);
@@ -1688,102 +1640,6 @@
     }
 
     // ═══ CALIBRATION ═══
-    function ScreenPage() {
-      const [rules, setRules] = useState({ B1: false, 红砖: false, B1宽松: false, 周线B1: false, B2: false, Tepu: false, 单针: false });
-      const [results, setResults] = useState(null);
-      const [loading, setLoading] = useState(false);
-      const [selectedCode, setSelectedCode] = useState(null);
-
-      const ruleNames = Object.keys(rules);
-      const toggleRule = (r) => setRules(prev => ({ ...prev, [r]: !prev[r] }));
-      const activeRules = ruleNames.filter(r => rules[r]);
-
-      const doSearch = async () => {
-        if (!activeRules.length) return;
-        setLoading(true);
-        const res = await apiFetch('/api/screen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules: activeRules }) });
-        setResults(res || []);
-        setSelectedCode(null);
-        setLoading(false);
-      };
-
-      return (
-        <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 100px)' }}>
-          {/* ── 左侧栏 ── */}
-          <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div className="card" style={{ padding: '14px 16px' }}>
-              <div className="card-title" style={{ marginBottom: 10 }}>参数检索</div>
-              <div className="card-title" style={{ marginBottom: 6 }}>过滤规则</div>
-              {ruleNames.map(r => (
-                <label key={r} className="rule" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
-                  <input type="checkbox" checked={rules[r]} onChange={() => toggleRule(r)} />
-                  <span>{r}</span>
-                </label>
-              ))}
-              <button onClick={doSearch} disabled={loading || !activeRules.length}
-                style={{ marginTop: 10, width: '100%', padding: '8px 0', background: activeRules.length ? 'var(--primary)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 4, cursor: activeRules.length ? 'pointer' : 'default', fontSize: 12 }}>
-                {loading ? '检索中…' : '开始检索'}
-              </button>
-            </div>
-          </div>
-
-          {/* ── 右侧主内容 ── */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
-            <div className="card" style={{ flex: '0 0 auto', maxHeight: '50%', overflow: 'auto', padding: '14px 16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontSize: 13 }}>条件检索 · <span style={{ color: 'var(--amber)' }}>已选 {activeRules.length} 规则</span> · 结果 <b>{results ? results.length : 0}</b> 条</span>
-              </div>
-              {!results ? (
-                <div style={{ color: 'var(--muted)', textAlign: 'center', padding: 30 }}>勾选规则后点击「开始检索」</div>
-              ) : results.length === 0 ? (
-                <div style={{ color: 'var(--muted)', textAlign: 'center', padding: 30 }}>无匹配结果</div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ color: 'var(--muted)', textAlign: 'left' }}>
-                      <th style={{ padding: '4px 6px' }}>股票</th>
-                      <th style={{ padding: '4px 6px' }}>最新价</th>
-                      <th style={{ padding: '4px 6px' }}>匹配规则</th>
-                      <th style={{ padding: '4px 6px' }}>评分</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.slice(0, 200).map(r => (
-                      <tr key={r.code} onClick={() => setSelectedCode(r.code)}
-                        style={{ cursor: 'pointer', borderBottom: '1px solid rgba(37,42,54,0.5)', background: selectedCode === r.code ? 'rgba(79,107,255,0.1)' : 'transparent' }}>
-                        <td style={{ padding: '3px 6px' }}><span style={{ color: 'var(--amber)', fontWeight: 600 }}>{r.name || r.code}</span><div style={{ fontSize: 10, color: 'var(--muted)' }}>{r.code}</div></td>
-                        <td style={{ padding: '3px 6px', fontFamily: 'var(--font-mono)', fontSize: 11 }}>{r.close ? r.close.toFixed(2) : '—'}</td>
-                        <td style={{ padding: '3px 6px' }}>{r.rules.map(rn => <span key={rn} style={{ display: 'inline-block', padding: '1px 5px', borderRadius: 2, fontSize: 10, background: 'rgba(232,168,64,0.12)', color: 'var(--amber)', marginRight: 3 }}>{rn}</span>)}</td>
-                        <td style={{ padding: '3px 6px', fontSize: 10 }}>{r.rules.map(rn => <div key={rn} style={{ color: 'var(--muted)' }}>{rn}: {r.details[rn]}</div>)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            {/* ── K 线预览 ── */}
-            <div className="card" style={{ flex: 1, padding: '10px 14px', minHeight: 200 }}>
-              {selectedCode ? (
-                <KlineChartPreview code={selectedCode} />
-              ) : (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)' }}>点击结果行查看 K 线</div>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    function KlineChartPreview({ code }) {
-      const [kdata, setKdata] = useState(null);
-      useEffect(() => {
-        apiFetch('/api/stock/kline/' + code + '?days=300').then(setKdata);
-      }, [code]);
-      if (!kdata) return <div style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>加载中…</div>;
-      return <KlineChart data={kdata} height={300} />;
-    }
-
     function CalibrationPage() {
       const [summary, setSummary] = useState({avg_brier:0.18, count:24, accuracy:71});
       const [biasByTarget, setBiasByTarget] = useState([
@@ -1880,7 +1736,6 @@
           case 'review': return <ReviewPage />;
           case 'portfolio': return <PortfolioPage />;
           case 'calibration': return <CalibrationPage />;
-          case 'screen': return <ScreenPage />;
           default: return <DashboardPage onNavigate={setActivePage} />;
         }
       };
@@ -1890,9 +1745,11 @@
           <main className="main-content">{renderPage()}</main>
         </>
       );
-    }
+	    }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+	    window._calcMACD = calcMACD;
+	    window._calcKDJ = calcKDJ;
+	    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
