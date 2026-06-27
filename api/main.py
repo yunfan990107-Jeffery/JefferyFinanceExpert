@@ -91,57 +91,6 @@ def get_news_raw(keyword: str = "A股", limit: int = 20):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 持仓
-# ═══════════════════════════════════════════════════════════════════
-
-@app.get("/api/portfolio")
-def get_portfolio():
-    """获取当前持仓 + 实时市值计算。"""
-    try:
-        records = fc.list_records(config.table_portfolio)
-    except Exception as e:
-        return {"data": [], "error": str(e)}
-
-    positions = []
-    for r in records:
-        f = r.get("fields", {})
-        code = f.get("code", "")
-        if not code:
-            continue
-        positions.append({
-            "code": code,
-            "name": f.get("name", ""),
-            "qty": float(f.get("qty", 0)),
-            "cost": float(f.get("cost", 0)),
-            "industry": f.get("industry", "未分类"),
-        })
-
-    prices = {}
-    for p in positions:
-        price_data = data_fetcher.get_price(p["code"])
-        if price_data.get("price"):
-            prices[p["code"]] = price_data["price"]
-
-    enriched = portfolio.compute_position_metrics(positions, prices)
-    conc = portfolio.concentration(enriched)
-
-    total_value = sum(e["market_value"] for e in enriched)
-    total_cost = sum(e["cost"] * e["qty"] for e in enriched)
-    total_pnl = total_value - total_cost
-    total_pnl_pct = (total_pnl / total_cost * 100) if total_cost else 0
-
-    return {
-        "data": {
-            "positions": enriched,
-            "total_value": round(total_value, 2),
-            "total_pnl": round(total_pnl, 2),
-            "total_pnl_pct": round(total_pnl_pct, 2),
-            "concentration": conc,
-        }
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════
 # 判断 & 复盘
 # ═══════════════════════════════════════════════════════════════════
 
