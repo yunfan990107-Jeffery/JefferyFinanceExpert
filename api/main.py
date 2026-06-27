@@ -368,9 +368,11 @@ def zg_screen(body: dict):
     conn = sqlite3.connect(str(db))
     placeholders = ",".join("?" for _ in rules)
     rows = conn.execute(
-        f"SELECT z.code, z.rule_name, z.score, z.details, s.name, sl.close, sl.date "
+        f"SELECT z.code, z.rule_name, z.score, z.details, "
+        f"COALESCE(s.name, z.code) as name, "
+        f"COALESCE(sl.close, 0) as close, COALESCE(sl.date, '') as date "
         f"FROM zg_signals z "
-        f"LEFT JOIN (SELECT code, name FROM stock_list) s ON z.code = s.code "
+        f"LEFT JOIN (SELECT REPLACE(REPLACE(REPLACE(code,'sh',''),'sz',''),'bj','') as code, name FROM stock_list) s ON z.code = s.code "
         f"LEFT JOIN (SELECT code, close, date FROM daily_k WHERE (code,date) IN (SELECT code, MAX(date) FROM daily_k GROUP BY code)) sl ON z.code = sl.code "
         f"WHERE z.rule_name IN ({placeholders}) AND z.date=(SELECT MAX(date) FROM zg_signals) "
         f"ORDER BY z.code",
@@ -378,7 +380,7 @@ def zg_screen(body: dict):
     ).fetchall()
     merged = defaultdict(lambda: {"rules": [], "scores": {}, "details": {}, "name": "", "close": 0, "date": ""})
     for r in rows:
-        code, rule, score, det, name, close, date = r[0], r[1], r[2], r[3], r[4] or code, r[5] or 0, r[6] or ""
+        code, rule, score, det, name, close, date = r[0], r[1], r[2], r[3], r[4], r[5], r[6]
         merged[code]["name"] = name
         merged[code]["close"] = close
         merged[code]["date"] = date
